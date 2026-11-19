@@ -10,6 +10,7 @@ export default function FloatingTeamSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,8 +35,25 @@ export default function FloatingTeamSwitcher() {
         setIsOpen(false);
       }
     }
+
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key === "Escape") {
+        setIsOpen(false);
+        return;
+      }
+
+      // Global shortcut Cmd+K or Ctrl+K or "/" to toggle team switcher
+      const isInput =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA";
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      } else if (e.key === "/" && !isInput) {
+        e.preventDefault();
+        setIsOpen(true);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -45,6 +63,15 @@ export default function FloatingTeamSwitcher() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  // Auto-focus search input when opened
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    } else {
+      setSearch("");
+    }
+  }, [isOpen]);
 
   const selectTeam = (slug: string) => {
     setIsOpen(false);
@@ -67,23 +94,28 @@ export default function FloatingTeamSwitcher() {
                 Select NFL Franchise
               </span>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="w-6 h-6 rounded-full flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--input)] cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <kbd className="hidden sm:inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--input)] border border-[var(--border)] text-[var(--muted)]">
+                ESC to close
+              </kbd>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--input)] cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
 
-          {/* Search box */}
+          {/* Search box with auto-focus */}
           <div className="relative mb-3">
             <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
             <input
+              ref={inputRef}
               type="text"
-              placeholder="Search all 32 franchises..."
+              placeholder="Search all 32 franchises... (e.g. Lions, KC, 49ers)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              autoFocus
               className="calm-input w-full pl-9 pr-8 py-2 text-xs placeholder:text-[var(--muted)] shadow-inner"
             />
             {search && (
@@ -109,15 +141,15 @@ export default function FloatingTeamSwitcher() {
                   onClick={() => selectTeam(t.slug)}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-colors text-xs group cursor-pointer ${
                     t.slug === currentSlug
-                      ? "bg-team-tint text-team font-semibold border border-team-tint"
-                      : "hover:bg-[var(--input)] text-[var(--foreground)]"
+                      ? "bg-team-tint font-semibold border border-team-tint"
+                      : "hover:bg-[var(--input)]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <img
                       src={t.logo}
                       alt={t.displayName}
-                      className="w-5.5 h-5.5 object-contain"
+                      className="w-5 h-5 object-contain"
                     />
                     <div>
                       <div className="font-medium text-[var(--foreground)] group-hover:text-team transition-colors">
@@ -138,11 +170,11 @@ export default function FloatingTeamSwitcher() {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) on Bottom Right */}
+      {/* Floating Action Button (FAB) on Bottom Right with Cmd+K Badge */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="group flex items-center gap-2.5 px-4 py-3 rounded-full bg-[var(--card)] hover:bg-[var(--input)] text-[var(--foreground)] border border-[var(--border)] hover:border-slate-400 dark:hover:border-slate-500 shadow-xl transition-all duration-200 hover:scale-103 cursor-pointer"
-        aria-label="Select NFL Franchise"
+        aria-label="Select NFL Franchise (Cmd+K)"
       >
         {currentTeam ? (
           <>
@@ -165,6 +197,11 @@ export default function FloatingTeamSwitcher() {
             </span>
           </>
         )}
+
+        <kbd className="hidden sm:inline-block text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-[var(--input)] border border-[var(--border)] text-[var(--muted)]">
+          ⌘K
+        </kbd>
+
         <ChevronUp
           className={`w-3.5 h-3.5 text-[var(--muted)] transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""

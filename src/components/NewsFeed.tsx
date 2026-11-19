@@ -2,13 +2,24 @@
 
 import { useState, useMemo } from "react";
 import type { NewsArticle } from "@/types";
-import { ArrowUpRight, Search, Clock, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpRight, Search, Clock, SlidersHorizontal, X, Tag } from "lucide-react";
 import { SunburstIcon, EditorialDispatch } from "@/components/icons/EditorialIcons";
 
 interface NewsFeedProps {
   articles: NewsArticle[];
   teamDisplayName: string;
 }
+
+type TopicFilter = "ALL" | "INJURY" | "ROSTER" | "PRESS" | "PREVIEW" | "ANALYSIS";
+
+const TOPIC_CONFIG: { id: TopicFilter; label: string; keywords: RegExp }[] = [
+  { id: "ALL", label: "All Topics", keywords: /./ },
+  { id: "INJURY", label: "Injuries & Health", keywords: /injur|hurt|quest|doubt|ir\b|concuss|acl|hamstring|ankle|out\b|surgery|status|practic/i },
+  { id: "ROSTER", label: "Roster & Moves", keywords: /trade|sign|waiv|roster|contract|free agent|bench|elevat|practice squad|cut\b|deal|pick/i },
+  { id: "PRESS", label: "Quotes & Pressers", keywords: /coach|press|said|says|spoke|react|interview|comment|conf|message|campbell|locker room|dan/i },
+  { id: "PREVIEW", label: "Game Previews", keywords: /vs\b|versus|preview|matchup|spread|odds|pick|week|predic|keys to|slate/i },
+  { id: "ANALYSIS", label: "Film & Analysis", keywords: /grade|film|breakdown|stat|report|midseason|rank|future|evaluat|standout/i },
+];
 
 // Estimates card height in pixels to greedily balance columns and eliminate blank spaces
 function estimateCardHeight(article: NewsArticle): number {
@@ -27,7 +38,6 @@ function distributeArticles(articles: NewsArticle[], numCols: number): NewsArtic
   const heights: number[] = Array.from({ length: numCols }, () => 0);
 
   articles.forEach((article) => {
-    // Find column with the lowest current height
     let shortestColIndex = 0;
     for (let i = 1; i < numCols; i++) {
       if (heights[i] < heights[shortestColIndex]) {
@@ -36,7 +46,7 @@ function distributeArticles(articles: NewsArticle[], numCols: number): NewsArtic
     }
 
     cols[shortestColIndex].push(article);
-    heights[shortestColIndex] += estimateCardHeight(article) + 16; // 16px is gap-4
+    heights[shortestColIndex] += estimateCardHeight(article) + 16;
   });
 
   return cols;
@@ -44,6 +54,12 @@ function distributeArticles(articles: NewsArticle[], numCols: number): NewsArtic
 
 function NewsCard({ article }: { article: NewsArticle }) {
   const hasImage = Boolean(article.imageUrl);
+
+  // Estimated read time
+  const wordCount =
+    article.title.split(" ").length +
+    (article.description ? article.description.split(" ").length : 0);
+  const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 50));
 
   return (
     <a
@@ -68,10 +84,10 @@ function NewsCard({ article }: { article: NewsArticle }) {
           </div>
         )}
 
-        {/* Source badge + Time ago row */}
+        {/* Source badge + Time ago row + Estimated read time */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <span
-            className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold truncate max-w-[170px] ${
+            className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold truncate max-w-[150px] ${
               article.isOfficial
                 ? "bg-team-tint text-team border border-team-tint font-bold"
                 : "bg-[var(--input)] text-[var(--muted)] border border-[var(--border)] font-medium"
@@ -82,7 +98,9 @@ function NewsCard({ article }: { article: NewsArticle }) {
 
           <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted)] font-mono shrink-0">
             <Clock className="w-3 h-3 text-[var(--muted-light)]" />
-            {article.relativeTime}
+            <span>{article.relativeTime}</span>
+            <span className="text-[var(--border)]">•</span>
+            <span>{readTimeMinutes}m read</span>
           </span>
         </div>
 
@@ -111,11 +129,13 @@ function NewsCard({ article }: { article: NewsArticle }) {
 }
 
 export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
-  const [filter, setFilter] = useState<"ALL" | "ESPN" | "WIRE">("ALL");
+  const [sourceFilter, setSourceFilter] = useState<"ALL" | "ESPN" | "WIRE">("ALL");
+  const [topicFilter, setTopicFilter] = useState<TopicFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredArticles = useMemo(() => {
     return articles.filter((article) => {
+      // 1. Search Query Filter
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
         q === "" ||
@@ -125,17 +145,48 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
 
       if (!matchesSearch) return false;
 
-      if (filter === "ESPN") {
-        return article.isOfficial || article.source.toLowerCase().includes("espn");
+      // 2. Source Filter
+      if (sourceFilter === "ESPN" && !(article.isOfficial || article.source.toLowerCase().includes("espn"))) {
+        return false;
       }
-      if (filter === "WIRE") {
-        return !article.isOfficial && !article.source.toLowerCase().includes("espn");
+      if (sourceFilter === "WIRE" && (article.isOfficial || article.source.toLowerCase().includes("espn"))) {
+        return false;
       }
+
+      // 3. Topic Filter
+      if (topicFilter !== "ALL") {
+        const topicConfig = TOPIC_CONFIG.find((t) => t.id === topicFilter);
+        if (topicConfig) {
+          const text = `${article.title} ${article.description}`;
+          if (!topicConfig.keywords.test(text)) return false;
+        }
+      }
+
       return true;
     });
-  }, [articles, filter, searchQuery]);
+  }, [articles, sourceFilter, topicFilter, searchQuery]);
 
-  // Greedily distribute into independent vertical columns to avoid CSS Grid row height gaps
+  // Topic counts for filter pills
+  const topicCounts = useMemo(() => {
+    const counts: Record<TopicFilter, number> = {
+      ALL: articles.length,
+      INJURY: 0,
+      ROSTER: 0,
+      PRESS: 0,
+      PREVIEW: 0,
+      ANALYSIS: 0,
+    };
+    articles.forEach((a) => {
+      const text = `${a.title} ${a.description}`;
+      TOPIC_CONFIG.forEach((tc) => {
+        if (tc.id !== "ALL" && tc.keywords.test(text)) {
+          counts[tc.id]++;
+        }
+      });
+    });
+    return counts;
+  }, [articles]);
+
   const tabletColumns = useMemo(
     () => distributeArticles(filteredArticles, 2),
     [filteredArticles]
@@ -154,7 +205,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header & Source Filter Tabs (All counts strictly inline on one line) */}
+      {/* Header & Source Filter Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
@@ -164,16 +215,16 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
             </h3>
           </div>
           <p className="text-xs text-[var(--muted)] mt-0.5">
-            Real-time coverage organized in an autofit bento layout with no empty gaps.
+            Real-time coverage organized in an autofit bento layout with topic intelligence.
           </p>
         </div>
 
-        {/* Tactile Source Tabs with Inline Counts */}
+        {/* Source Tabs with Inline Counts */}
         <div className="inline-flex items-center rounded-full bg-[var(--input)] p-1 border border-[var(--border)] self-start sm:self-auto shadow-inner">
           <button
-            onClick={() => setFilter("ALL")}
+            onClick={() => setSourceFilter("ALL")}
             className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
-              filter === "ALL"
+              sourceFilter === "ALL"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
@@ -185,9 +236,9 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
           </button>
 
           <button
-            onClick={() => setFilter("ESPN")}
+            onClick={() => setSourceFilter("ESPN")}
             className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
-              filter === "ESPN"
+              sourceFilter === "ESPN"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
@@ -199,9 +250,9 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
           </button>
 
           <button
-            onClick={() => setFilter("WIRE")}
+            onClick={() => setSourceFilter("WIRE")}
             className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
-              filter === "WIRE"
+              sourceFilter === "WIRE"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
@@ -215,42 +266,83 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
       </div>
 
       {/* Prominent Live Search Input */}
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-4.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={`Search ${teamDisplayName} headlines, injuries, coach pressers, trade rumors...`}
-          className="calm-input w-full pl-11 pr-11 py-3 text-sm placeholder:text-[var(--muted)] shadow-inner"
-        />
-        {searchQuery ? (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="w-5 h-5 rounded-full absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        ) : (
-          <SlidersHorizontal className="w-3.5 h-3.5 absolute right-4.5 top-1/2 -translate-y-1/2 text-[var(--muted-light)] pointer-events-none" />
-        )}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-4.5 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Search ${teamDisplayName} headlines, injuries, coach pressers, trade rumors...`}
+            className="calm-input w-full pl-11 pr-11 py-3 text-sm placeholder:text-[var(--muted)] shadow-inner"
+          />
+          {searchQuery ? (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="w-5 h-5 rounded-full absolute right-4 top-1/2 -translate-y-1/2 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <SlidersHorizontal className="w-3.5 h-3.5 absolute right-4.5 top-1/2 -translate-y-1/2 text-[var(--muted-light)] pointer-events-none" />
+          )}
+        </div>
+
+        {/* Feature 4: Topic Filter Pills Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          <span className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider flex items-center gap-1 pl-1 shrink-0">
+            <Tag className="w-3 h-3 text-team" />
+            <span>Topic:</span>
+          </span>
+          {TOPIC_CONFIG.map((tc) => {
+            const count = topicCounts[tc.id];
+            if (tc.id !== "ALL" && count === 0) return null;
+            const isSelected = topicFilter === tc.id;
+            return (
+              <button
+                key={tc.id}
+                onClick={() => setTopicFilter(tc.id)}
+                className={`whitespace-nowrap px-3 py-1 rounded-full text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  isSelected
+                    ? "bg-team text-white font-semibold shadow-xs"
+                    : "bg-[var(--input)] text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]"
+                }`}
+              >
+                <span>{tc.label}</span>
+                <span
+                  className={`text-[10px] font-mono px-1 rounded-full ${
+                    isSelected ? "bg-black/20 text-white" : "bg-[var(--card)] text-[var(--muted)]"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {searchQuery && (
+      {/* Active Search & Filter Status */}
+      {(searchQuery || topicFilter !== "ALL") && (
         <div className="flex items-center justify-between text-xs text-[var(--muted)] px-1">
           <span>
-            Found <strong>{filteredArticles.length}</strong> matching stories for "{searchQuery}"
+            Showing <strong>{filteredArticles.length}</strong> stories
+            {topicFilter !== "ALL" ? ` in ${TOPIC_CONFIG.find((t) => t.id === topicFilter)?.label}` : ""}
+            {searchQuery ? ` matching "${searchQuery}"` : ""}
           </span>
           <button
-            onClick={() => setSearchQuery("")}
+            onClick={() => {
+              setSearchQuery("");
+              setTopicFilter("ALL");
+            }}
             className="text-team underline cursor-pointer"
           >
-            Clear search
+            Reset filters
           </button>
         </div>
       )}
 
-      {/* Autofit Bento Masonry Columns (Zero blank space, smaller cards stack tightly underneath) */}
+      {/* Autofit Bento Masonry Columns (Zero blank space) */}
       {filteredArticles.length === 0 ? (
         <div className="calm-card p-12 text-center">
           <EditorialDispatch className="w-8 h-8 mx-auto text-[var(--muted-light)] mb-3" />
@@ -258,7 +350,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
             No articles found
           </h4>
           <p className="text-xs text-[var(--muted)] mt-1">
-            Try a different search keyword or switch back to the "All" tab.
+            Try a different search keyword or switch back to the "All Topics" tab.
           </p>
         </div>
       ) : (

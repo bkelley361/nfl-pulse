@@ -1,7 +1,9 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import type { MatchupPredictorData, ScheduleGame } from "@/types";
-import { Tv, MapPin, Calendar } from "lucide-react";
-import { SunburstIcon } from "@/components/icons/EditorialIcons";
+import { Tv, MapPin, Calendar, Clock } from "lucide-react";
+import { SunburstIcon, EditorialPulse } from "@/components/icons/EditorialIcons";
 
 interface MatchupPredictorProps {
   matchup: MatchupPredictorData | null;
@@ -9,11 +11,88 @@ interface MatchupPredictorProps {
   teamColor: string;
 }
 
+// Determines if venue is an indoor/climate-controlled dome or open-air stadium
+function getStadiumInfo(venueName: string = ""): { isDome: boolean; label: string } {
+  const v = venueName.toLowerCase();
+  const domeKeywords = [
+    "ford field",
+    "superdome",
+    "u.s. bank",
+    "mercedes-benz",
+    "at&t stadium",
+    "nrg stadium",
+    "lucas oil",
+    "state farm stadium",
+    "allegiant",
+    "sofi",
+    "dome",
+  ];
+  const isDome = domeKeywords.some((k) => v.includes(k));
+  return {
+    isDome,
+    label: isDome ? "Indoor Dome • Controlled" : "Open-Air Outdoor Stadium",
+  };
+}
+
+// Dynamic real-time kickoff countdown
+function useCountdown(targetIsoDate?: string) {
+  const [status, setStatus] = useState<{ text: string; isLive: boolean }>({
+    text: "Scheduled",
+    isLive: false,
+  });
+
+  useEffect(() => {
+    if (!targetIsoDate) return;
+
+    function update() {
+      const target = new Date(targetIsoDate!).getTime();
+      if (isNaN(target)) return;
+
+      const now = Date.now();
+      const diff = target - now;
+
+      // If game started within the last 3.5 hours, consider live
+      if (diff <= 0 && diff > -3.5 * 60 * 60 * 1000) {
+        setStatus({ text: "LIVE NOW", isLive: true });
+        return;
+      }
+      if (diff <= -3.5 * 60 * 60 * 1000) {
+        setStatus({ text: "Final Score", isLive: false });
+        return;
+      }
+
+      const totalSec = Math.floor(diff / 1000);
+      const days = Math.floor(totalSec / (3600 * 24));
+      const hours = Math.floor((totalSec % (3600 * 24)) / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+
+      if (days > 0) {
+        setStatus({ text: `Kickoff in ${days}d ${hours}h`, isLive: false });
+      } else if (hours > 0) {
+        setStatus({ text: `Kickoff in ${hours}h ${minutes}m`, isLive: false });
+      } else if (minutes > 0) {
+        setStatus({ text: `Kickoff in ${minutes}m`, isLive: false });
+      } else {
+        setStatus({ text: "Kickoff Imminent", isLive: false });
+      }
+    }
+
+    update();
+    const interval = setInterval(update, 30000);
+    return () => clearInterval(interval);
+  }, [targetIsoDate]);
+
+  return status;
+}
+
 export default function MatchupPredictor({
   matchup,
   nextGame,
   teamColor,
 }: MatchupPredictorProps) {
+  const gameDate = matchup?.gameDate || nextGame?.date;
+  const countdown = useCountdown(gameDate);
+
   if (!matchup && !nextGame) {
     return (
       <div className="calm-card p-8 text-center">
@@ -30,6 +109,7 @@ export default function MatchupPredictor({
     const teamIsFavored = teamWinProj >= oppWinProj;
     const favoredMargin = Math.abs(teamWinProj - oppWinProj).toFixed(1);
     const hasBettingOdds = matchup.hasOdds && (team.impliedWinPct !== undefined || team.moneyline !== undefined);
+    const stadium = getStadiumInfo(venueName);
 
     const formattedDate = nextGame?.shortDate || (matchup.gameDate
       ? new Date(matchup.gameDate).toLocaleDateString("en-US", {
@@ -53,12 +133,29 @@ export default function MatchupPredictor({
           style={{ backgroundColor: opponent.color }}
         />
 
-        {/* Top Matchup Header */}
+        {/* Top Matchup Header with Live Countdown & Stadium Environment */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <span className="text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-team-tint text-team border border-team-tint">
               Next Matchup • {weekText}
             </span>
+
+            {/* Countdown Badge */}
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold border ${
+                countdown.isLive
+                  ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 animate-pulse"
+                  : "bg-[var(--input)] text-[var(--foreground)] border-[var(--border)]"
+              }`}
+            >
+              {countdown.isLive ? (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              ) : (
+                <Clock className="w-3 h-3 text-[var(--muted)]" />
+              )}
+              <span>{countdown.text}</span>
+            </span>
+
             {broadcast && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--input)] border border-[var(--border)] text-[11px] font-semibold text-[var(--foreground)]">
                 <Tv className="w-3 h-3 text-amber-500" />
@@ -67,15 +164,18 @@ export default function MatchupPredictor({
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-[var(--muted)]">
+          {/* Date & Stadium Environment Badge */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-[var(--muted)]" />
               <span>{formattedDate}</span>
             </div>
             {venueName && (
-              <div className="hidden sm:flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[var(--muted)]" />
-                <span className="truncate max-w-[200px]">{venueName}</span>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-[11px] font-medium">
+                <MapPin className="w-3 h-3 text-[var(--muted)]" />
+                <span className="truncate max-w-[170px]">{venueName}</span>
+                <span className="text-[var(--border)]">•</span>
+                <span className="text-[10px] text-[var(--muted)]">{stadium.label}</span>
               </div>
             )}
           </div>
@@ -159,8 +259,8 @@ export default function MatchupPredictor({
           </div>
 
           {/* Opponent Profile */}
-          <div className="md:col-span-4 flex items-center justify-start md:justify-end gap-4 text-left md:text-right">
-            <div className="order-2 md:order-1">
+          <div className="md:col-span-4 flex items-center justify-end gap-4 text-right">
+            <div>
               <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
                 {!matchup.isHome ? "Home" : "Away"}
               </div>
@@ -174,9 +274,9 @@ export default function MatchupPredictor({
               )}
             </div>
             <div
-              className="order-1 md:order-2 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2.5 bg-[var(--card)] border border-[var(--border)] flex items-center justify-center shadow-md flex-shrink-0"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2.5 bg-[var(--card)] border border-[var(--border)] flex items-center justify-center shadow-md flex-shrink-0"
               style={{
-                boxShadow: `0 8px 24px -6px ${opponent.color}25`,
+                boxShadow: `0 8px 24px -6px ${opponent.color}35`,
               }}
             >
               <img
@@ -188,85 +288,57 @@ export default function MatchupPredictor({
           </div>
         </div>
 
-        {/* Market Consensus & Betting Odds Cards */}
+        {/* Vegas Betting & Market Consensus Drawer */}
         {hasBettingOdds && (
-          <div className="mt-5 pt-5 border-t border-[var(--border)]">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-                  Point Spread
-                </div>
-                <div className="font-editorial text-lg font-bold text-[var(--foreground)] mt-0.5">
-                  {spreadDetails || team.spread || "PK"}
-                </div>
-                <div className="text-[10px] text-[var(--muted)] mt-0.5">Consensus line</div>
+          <div className="mt-5 pt-4 border-t border-[var(--border)] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            {spreadDetails && (
+              <div className="p-3 rounded-xl bg-[var(--input)]/60 border border-[var(--border)] text-center">
+                <span className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-wider block">
+                  Consensus Spread
+                </span>
+                <span className="font-editorial text-base font-semibold text-[var(--foreground)] mt-0.5 block">
+                  {spreadDetails}
+                </span>
               </div>
+            )}
 
-              <div className="p-3.5 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-                  Game Total (O/U)
-                </div>
-                <div className="font-editorial text-lg font-bold text-[var(--foreground)] mt-0.5">
-                  {overUnder ? `${overUnder} pts` : "--"}
-                </div>
-                <div className="text-[10px] text-[var(--muted)] mt-0.5">Over / Under</div>
+            {overUnder && (
+              <div className="p-3 rounded-xl bg-[var(--input)]/60 border border-[var(--border)] text-center">
+                <span className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-wider block">
+                  Total (O/U)
+                </span>
+                <span className="font-editorial text-base font-semibold text-[var(--foreground)] mt-0.5 block">
+                  {overUnder} pts
+                </span>
               </div>
+            )}
 
-              <div className="p-3.5 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-                  Moneyline
-                </div>
-                <div className="font-editorial text-lg font-bold text-[var(--foreground)] mt-0.5">
-                  {team.moneyline ? (team.moneyline > 0 ? `+${team.moneyline}` : team.moneyline) : "--"}
-                </div>
-                <div className="text-[10px] text-[var(--muted)] mt-0.5">
-                  Opp: {opponent.moneyline ? (opponent.moneyline > 0 ? `+${opponent.moneyline}` : opponent.moneyline) : "--"}
-                </div>
+            {team.moneyline !== undefined && (
+              <div className="p-3 rounded-xl bg-[var(--input)]/60 border border-[var(--border)] text-center">
+                <span className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-wider block">
+                  {team.shortDisplayName || team.name} Moneyline
+                </span>
+                <span className="font-editorial text-base font-semibold text-[var(--foreground)] mt-0.5 block">
+                  {team.moneyline > 0 ? `+${team.moneyline}` : team.moneyline}
+                </span>
               </div>
+            )}
 
-              <div className="p-3.5 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-                  Implied Win %
-                </div>
-                <div className="font-editorial text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                  {team.impliedWinPct ? `${team.impliedWinPct}%` : "--"}
-                </div>
-                <div className="text-[10px] text-[var(--muted)] mt-0.5">Vig-free market</div>
+            {team.impliedWinPct !== undefined && (
+              <div className="p-3 rounded-xl bg-[var(--input)]/60 border border-[var(--border)] text-center">
+                <span className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-wider block">
+                  Implied Odds (Vig-Free)
+                </span>
+                <span className="font-editorial text-base font-semibold text-[var(--foreground)] mt-0.5 block">
+                  {team.impliedWinPct}%
+                </span>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
     );
   }
 
-  return (
-    <div className="calm-card p-6">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-          Next Matchup • {nextGame?.week}
-        </span>
-        <span className="text-xs text-[var(--muted)]">{nextGame?.shortDate}</span>
-      </div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img
-            src={nextGame?.opponent.logo}
-            alt={nextGame?.opponent.displayName}
-            className="w-10 h-10 object-contain"
-          />
-          <div>
-            <div className="text-xs text-[var(--muted)]">{nextGame?.isHome ? "vs" : "@"} Opponent</div>
-            <div className="font-editorial text-lg font-bold text-[var(--foreground)]">
-              {nextGame?.opponent.displayName}
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-xs text-[var(--muted)]">{nextGame?.venue?.fullName}</div>
-          <div className="text-sm font-semibold text-[var(--foreground)]">{nextGame?.statusDetail}</div>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 }

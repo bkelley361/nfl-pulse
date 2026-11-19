@@ -9,7 +9,7 @@ import {
 } from "@/lib/api";
 import { getTeamStyleVariables } from "@/lib/colors";
 import TeamDashboardView from "@/components/TeamDashboardView";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -60,6 +60,14 @@ export default async function TeamPage({ params }: PageProps) {
     (d) => d.conference === team.conference && d.division === team.division
   );
 
+  // Divisional neighbors for fast cycling
+  const divisionTeams = NFL_TEAMS.filter(
+    (t) => t.conference === team.conference && t.division === team.division
+  );
+  const currentDivIndex = divisionTeams.findIndex((t) => t.id === team.id);
+  const prevTeam = divisionTeams[(currentDivIndex - 1 + divisionTeams.length) % divisionTeams.length];
+  const nextTeam = divisionTeams[(currentDivIndex + 1) % divisionTeams.length];
+
   return (
     <div
       className="min-h-screen pb-20 transition-colors duration-200"
@@ -74,14 +82,38 @@ export default async function TeamPage({ params }: PageProps) {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-9">
-          {/* Back Pill Button */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] hover:border-slate-400 dark:hover:border-slate-600 transition-all mb-6 group cursor-pointer shadow-2xs"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-            <span>All Franchises</span>
-          </Link>
+          {/* Navigation Bar: Back & Next/Prev Division Navigation */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] hover:border-slate-400 dark:hover:border-slate-600 transition-all group cursor-pointer shadow-2xs"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+              <span>All Franchises</span>
+            </Link>
+
+            <div className="inline-flex items-center rounded-full bg-[var(--input)] p-1 border border-[var(--border)] shadow-2xs text-xs">
+              <Link
+                href={`/team/${prevTeam.slug}`}
+                className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
+                title={`Previous: ${prevTeam.displayName}`}
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span className="hidden sm:inline">{prevTeam.name}</span>
+                <span className="sm:hidden">{prevTeam.abbreviation}</span>
+              </Link>
+              <span className="text-[var(--border)]">•</span>
+              <Link
+                href={`/team/${nextTeam.slug}`}
+                className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
+                title={`Next: ${nextTeam.displayName}`}
+              >
+                <span className="hidden sm:inline">{nextTeam.name}</span>
+                <span className="sm:hidden">{nextTeam.abbreviation}</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
 
           {/* Team Profile Row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">

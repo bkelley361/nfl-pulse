@@ -12,6 +12,27 @@ interface ScheduleViewProps {
   teamColor: string;
 }
 
+// Detects Thursday Night Football short rest or Bye week rest advantage
+function getRestBadge(game: ScheduleGame, prevGame?: ScheduleGame) {
+  if (game.completed) return null;
+  const d = new Date(game.date);
+  const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
+  if (dayName === "Thu") {
+    return { label: "Short Rest (TNF)", type: "short" as const };
+  }
+  if (prevGame) {
+    const prevD = new Date(prevGame.date);
+    const diffDays = Math.round((d.getTime() - prevD.getTime()) / (1000 * 3600 * 24));
+    if (diffDays >= 12) {
+      return { label: "Coming off Bye Week", type: "bye" as const };
+    }
+  }
+  if (dayName === "Mon") {
+    return { label: "Extended Prep (MNF)", type: "normal" as const };
+  }
+  return null;
+}
+
 export default function ScheduleView({
   games,
   teamDisplayName,
@@ -117,6 +138,8 @@ export default function ScheduleView({
             const weekNumberStr = `Week ${game.weekNumber || index + 1}`;
             const gameTimeStr = formatGameTime(game);
             const prob = game.winProbability ?? 50;
+            const prevGame = index > 0 ? filteredGames[index - 1] : undefined;
+            const restBadge = getRestBadge(game, prevGame);
 
             const d = new Date(game.date);
             const dateStr = !isNaN(d.getTime())
@@ -192,6 +215,20 @@ export default function ScheduleView({
                             <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                               <Tv className="w-2.5 h-2.5" />
                               {game.broadcast}
+                            </span>
+                          </>
+                        )}
+                        {restBadge && (
+                          <>
+                            <span>•</span>
+                            <span
+                              className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                                restBadge.type === "short"
+                                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                                  : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/25"
+                              }`}
+                            >
+                              {restBadge.label}
                             </span>
                           </>
                         )}
