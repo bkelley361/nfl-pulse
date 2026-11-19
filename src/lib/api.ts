@@ -8,6 +8,9 @@ import type {
   NewsArticle,
   TeamDivisionStats,
   DivisionStandingsGroup,
+  TeamPersonnelData,
+  PlayerLeader,
+  PlayerInjury,
 } from "@/types";
 
 export function timeAgo(dateString: string): string {
@@ -665,3 +668,147 @@ export async function fetchTeamNews(team: NFLTeam): Promise<NewsArticle[]> {
     return timeB - timeA;
   });
 }
+
+// 6. Fetch Team Playmakers/Leaders & Official Weekly Injury Report
+export async function fetchTeamPersonnel(teamId: string): Promise<TeamPersonnelData> {
+  const result: TeamPersonnelData = {
+    leaders: [],
+    injuries: [],
+  };
+
+  try {
+    // 1. Fetch Roster
+    const rosterUrl = `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/roster`;
+    const rosterRes = await fetch(rosterUrl, { next: { revalidate: 600 } });
+    if (!rosterRes.ok) return result;
+
+    const rosterData = await rosterRes.json();
+    const athleteMap: Record<string, any> = {};
+    const seenInjuries = new Set<string>();
+
+    (rosterData.athletes || []).forEach((group: any) => {
+      (group.items || []).forEach((a: any) => {
+        athleteMap[a.id] = a;
+
+        const injuryStatus =
+          a.injuries?.[0]?.status || (a.status?.name !== "Active" ? a.status?.name : null);
+        if (injuryStatus && injuryStatus !== "Practice Squad" && !seenInjuries.has(a.id)) {
+          seenInjuries.add(a.id);
+          result.injuries.push({
+            id: a.id,
+            fullName: a.fullName || a.displayName,
+            position: a.position?.abbreviation || "ATH",
+            jersey: a.jersey ? `#${a.jersey}` : undefined,
+            headshot: a.headshot?.href,
+            status: injuryStatus,
+            details: a.injuries?.[0]?.date
+              ? new Date(a.injuries[0].date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })
+              : undefined,
+          });
+        }
+      });
+    });
+
+    // 2. Fetch Season Leaders
+    const leadersUrl = `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/types/2/teams/${teamId}/leaders`;
+    const leadersRes = await fetch(leadersUrl, { next: { revalidate: 600 } });
+    if (leadersRes.ok) {
+      const leadersData = await leadersRes.json();
+      const categories = leadersData.categories || [];
+
+      const getAthleteId = (url?: string) => {
+        if (!url) return null;
+        const match = url.match(/\/athletes\/(\d+)/);
+        return match ? match[1] : null;
+      };
+
+      const findCategory = (name: string) => categories.find((c: any) => c.name === name);
+
+      // Passing Leader
+      const passCat = findCategory("passingLeader") || findCategory("passingYards");
+      if (passCat?.leaders?.[0]) {
+        const aId = getAthleteId(passCat.leaders[0].athlete?.$ref);
+        const athlete = aId ? athleteMap[aId] : null;
+        if (athlete) {
+          result.leaders.push({
+            category: "passing",
+            categoryLabel: "Passing Leader",
+            athleteId: aId!,
+            fullName: athlete.fullName || athlete.displayName,
+            jersey: athlete.jersey ? `#${athlete.jersey}` : undefined,
+            position: athlete.position?.abbreviation || "QB",
+            headshot: athlete.headshot?.href,
+            statLine: `${Number(passCat.leaders[0].value).toLocaleString()} YDS`,
+          });
+        }
+      }
+
+      // Rushing Leader
+      const rushCat = findCategory("rushingLeader") || findCategory("rushingYards");
+      if (rushCat?.leaders?.[0]) {
+        const aId = getAthleteId(rushCat.leaders[0].athlete?.$ref);
+        const athlete = aId ? athleteMap[aId] : null;
+        if (athlete) {
+          result.leaders.push({
+            category: "rushing",
+            categoryLabel: "Rushing Leader",
+            athleteId: aId!,
+            fullName: athlete.fullName || athlete.displayName,
+            jersey: athlete.jersey ? `#${athlete.jersey}` : undefined,
+            position: athlete.position?.abbreviation || "RB",
+            headshot: athlete.headshot?.href,
+            statLine: `${Number(rushCat.leaders[0].value).toLocaleString()} YDS`,
+          });
+        }
+      }
+
+      // Receiving Leader
+      const recCat = findCategory("receivingLeader") || findCategory("receivingYards");
+      if (recCat?.leaders?.[0]) {
+        const aId = getAthleteId(recCat.leaders[0].athlete?.$ref);
+        const athlete = aId ? athleteMap[aId] : null;
+        if (athlete) {
+          result.leaders.push({
+            category: "receiving",
+            categoryLabel: "Receiving Leader",
+            athleteId: aId!,
+            fullName: athlete.fullName || athlete.displayName,
+            jersey: athlete.jersey ? `#${athlete.jersey}` : undefined,
+            position: athlete.position?.abbreviation || "WR",
+            headshot: athlete.headshot?.href,
+            statLine: `${Number(recCat.leaders[0].value).toLocaleString()} YDS`,
+          });
+        }
+      }
+
+      // Defense Leader
+      const sackCat = findCategory("sacks");
+      const tackleCat = findCategory("totalTackles");
+      const defCat = sackCat?.leaders?.[0]?.value > 0 ? sackCat : tackleCat;
+      if (defCat?.leaders?.[0]) {
+        const aId = getAthleteId(defCat.leaders[0].athlete?.$ref);
+        const athlete = aId ? athleteMap[aId] : null;
+        if (athlete) {
+          result.leaders.push({
+            category: "defense",
+            categoryLabel: defCat.name === "sacks" ? "Sacks Leader" : "Tackles Leader",
+            athleteId: aId!,
+            fullName: athlete.fullName || athlete.displayName,
+            jersey: athlete.jersey ? `#${athlete.jersey}` : undefined,
+            position: athlete.position?.abbreviation || "DEF",
+            headshot: athlete.headshot?.href,
+            statLine: `${defCat.leaders[0].value} ${defCat.name === "sacks" ? "Sacks" : "Tackles"}`,
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("fetchTeamPersonnel error:", err);
+  }
+
+  return result;
+}
+

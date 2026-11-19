@@ -9,12 +9,15 @@ import type {
   NewsArticle,
   DivisionStandingsGroup,
   TeamDivisionStats,
+  TeamPersonnelData,
 } from "@/types";
 import MatchupPredictor from "@/components/MatchupPredictor";
 import ScheduleView from "@/components/ScheduleView";
 import NewsFeed from "@/components/NewsFeed";
 import DivisionStandings from "@/components/DivisionStandings";
-import { ArrowRight, Clock } from "lucide-react";
+import TeamLeadersView from "@/components/TeamLeadersView";
+import InjuryReportView from "@/components/InjuryReportView";
+import { ArrowRight, Clock, Activity, Users } from "lucide-react";
 import {
   SunburstIcon,
   EditorialPulse,
@@ -30,6 +33,8 @@ interface TeamDashboardViewProps {
   newsArticles: NewsArticle[];
   division?: DivisionStandingsGroup;
   teamStats?: TeamDivisionStats;
+  personnelData?: TeamPersonnelData;
+  conferenceTeams?: TeamDivisionStats[];
 }
 
 // Computes playoff picture bracket status and clinch outlook
@@ -85,10 +90,12 @@ export default function TeamDashboardView({
   newsArticles,
   division,
   teamStats,
+  personnelData,
+  conferenceTeams,
 }: TeamDashboardViewProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "schedule" | "standings" | "news">(
-    "overview"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "schedule" | "standings" | "leaders" | "injuries" | "news"
+  >("overview");
 
   const nextGame = scheduleData.games.find((g: ScheduleGame) => !g.completed);
   const remainingCount = scheduleData.games.filter((g: ScheduleGame) => !g.completed).length;
@@ -210,11 +217,11 @@ export default function TeamDashboardView({
       </div>
 
       {/* Main Navigation Tabs Bar */}
-      <div className="flex items-center justify-center sm:justify-start">
-        <div className="inline-flex rounded-full bg-[var(--input)] p-1.5 border border-[var(--border)] shadow-inner flex-wrap sm:flex-nowrap gap-1">
+      <div className="flex items-center justify-start overflow-x-auto pb-1 max-w-full">
+        <div className="inline-flex rounded-full bg-[var(--input)] p-1.5 border border-[var(--border)] shadow-inner flex-nowrap gap-1">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+            className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "overview"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -226,14 +233,14 @@ export default function TeamDashboardView({
 
           <button
             onClick={() => setActiveTab("schedule")}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+            className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "schedule"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             <EditorialCalendar className="w-3.5 h-3.5" />
-            <span>Schedule & Win Probabilities</span>
+            <span>Schedule</span>
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
               {scheduleData.games.length}
             </span>
@@ -242,30 +249,62 @@ export default function TeamDashboardView({
           {division && (
             <button
               onClick={() => setActiveTab("standings")}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+              className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
                 activeTab === "standings"
                   ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                   : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
               <DivisionRankIcon className="w-3.5 h-3.5" />
-              <span>Division Standings</span>
+              <span>Standings & Playoffs</span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
-                Rank #{teamStats?.rank || 1}
+                #{teamStats?.rank || 1}
+              </span>
+            </button>
+          )}
+
+          {personnelData?.leaders && personnelData.leaders.length > 0 && (
+            <button
+              onClick={() => setActiveTab("leaders")}
+              className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === "leaders"
+                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-team" />
+              <span>Playmakers</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+                {personnelData.leaders.length}
               </span>
             </button>
           )}
 
           <button
+            onClick={() => setActiveTab("injuries")}
+            className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+              activeTab === "injuries"
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-rose-500" />
+            <span>Injury Report</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+              {personnelData?.injuries?.length || 0}
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab("news")}
-            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+            className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === "news"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             <EditorialDispatch className="w-3.5 h-3.5" />
-            <span>Latest News</span>
+            <span>News</span>
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
               {newsArticles.length}
             </span>
@@ -285,15 +324,26 @@ export default function TeamDashboardView({
             />
           </section>
 
+          {/* Season Statistical Leaders (Playmakers) */}
+          {personnelData?.leaders && personnelData.leaders.length > 0 && (
+            <section className="calm-card p-6">
+              <TeamLeadersView
+                leaders={personnelData.leaders}
+                teamColor={team.color}
+              />
+            </section>
+          )}
+
           {/* Grid: Division Standings Preview + Next Games Preview */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Division Standings Preview (7 cols) */}
+            {/* Division Standings Preview with Conference Toggle (7 cols) */}
             {division && (
               <div className="lg:col-span-7 calm-card p-6">
                 <DivisionStandings
                   division={division}
                   currentTeamId={team.id}
                   teamColor={team.color}
+                  conferenceTeams={conferenceTeams}
                 />
               </div>
             )}
@@ -372,6 +422,14 @@ export default function TeamDashboardView({
               </div>
             </div>
           </div>
+
+          {/* Official Injury & IR Report */}
+          <section className="calm-card p-6">
+            <InjuryReportView
+              injuries={personnelData?.injuries || []}
+              teamDisplayName={team.displayName}
+            />
+          </section>
         </div>
       )}
 
@@ -387,18 +445,39 @@ export default function TeamDashboardView({
         </div>
       )}
 
-      {/* Tab 3: Full Division Standings & Analytics */}
+      {/* Tab 3: Full Division & Conference Playoff Standings */}
       {activeTab === "standings" && division && (
         <div className="calm-card p-6 sm:p-8 animate-in fade-in duration-200 space-y-6">
           <DivisionStandings
             division={division}
             currentTeamId={team.id}
             teamColor={team.color}
+            conferenceTeams={conferenceTeams}
           />
         </div>
       )}
 
-      {/* Tab 4: Full-Width Spacious News Stream */}
+      {/* Tab 4: Playmakers & Statistical Leaders */}
+      {activeTab === "leaders" && (
+        <div className="calm-card p-6 sm:p-8 animate-in fade-in duration-200">
+          <TeamLeadersView
+            leaders={personnelData?.leaders || []}
+            teamColor={team.color}
+          />
+        </div>
+      )}
+
+      {/* Tab 5: Official Injury & IR Report */}
+      {activeTab === "injuries" && (
+        <div className="calm-card p-6 sm:p-8 animate-in fade-in duration-200">
+          <InjuryReportView
+            injuries={personnelData?.injuries || []}
+            teamDisplayName={team.displayName}
+          />
+        </div>
+      )}
+
+      {/* Tab 6: Full-Width Spacious News Stream */}
       {activeTab === "news" && (
         <div className="calm-card p-6 sm:p-8 animate-in fade-in duration-200">
           <NewsFeed

@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react";
 import type { ScheduleGame } from "@/types";
-import { Tv, Clock } from "lucide-react";
+import { Tv, Clock, CalendarPlus } from "lucide-react";
 import { SunburstIcon } from "@/components/icons/EditorialIcons";
+import { downloadTeamICS, getGoogleCalendarLink } from "@/lib/calendar";
 
 interface ScheduleViewProps {
   games: ScheduleGame[];
@@ -124,6 +125,21 @@ export default function ScheduleView({
         </div>
       </div>
 
+      {/* Sub-bar: Matchup counter & 1-Click Calendar Sync */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <span className="text-xs text-[var(--muted)] font-mono">
+          Showing <strong>{filteredGames.length}</strong> matchups
+        </span>
+        <button
+          onClick={() => downloadTeamICS(teamDisplayName, games)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[var(--input)] hover:bg-[var(--card)] border border-[var(--border)] text-xs font-semibold text-[var(--foreground)] hover:border-slate-400 transition-all cursor-pointer shadow-2xs group"
+          title="Download .ics file to sync with Apple, Google, or Outlook Calendar"
+        >
+          <CalendarPlus className="w-3.5 h-3.5 text-team group-hover:scale-110 transition-transform" />
+          <span>Add Schedule to Calendar (.ics)</span>
+        </button>
+      </div>
+
       {/* Games List */}
       {filteredGames.length === 0 ? (
         <div className="p-8 text-center rounded-2xl bg-[var(--input)]/50 border border-[var(--border)] text-[var(--muted)] text-xs">
@@ -241,7 +257,7 @@ export default function ScheduleView({
                 <div className="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
                   {/* Win Probability Bar for every upcoming matchup */}
                   {!isCompleted && !game.isLive && (
-                    <div className="flex items-center gap-3 pr-2">
+                    <div className="flex items-center gap-3 pr-1">
                       <div className="text-right">
                         <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">
                           Win Prob
@@ -260,6 +276,15 @@ export default function ScheduleView({
                           }}
                         />
                       </div>
+                      <a
+                        href={getGoogleCalendarLink(game, teamDisplayName)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-7 h-7 rounded-lg bg-[var(--input)] hover:bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-[var(--muted)] hover:text-team transition-colors shadow-2xs"
+                        title="Add this game to Google Calendar"
+                      >
+                        <CalendarPlus className="w-3.5 h-3.5" />
+                      </a>
                     </div>
                   )}
 

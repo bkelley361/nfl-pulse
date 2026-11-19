@@ -6,9 +6,11 @@ import {
   fetchGameMatchup,
   fetchTeamNews,
   fetchLeagueStandings,
+  fetchTeamPersonnel,
 } from "@/lib/api";
 import { getTeamStyleVariables } from "@/lib/colors";
 import TeamDashboardView from "@/components/TeamDashboardView";
+import ShareTeamButton from "@/components/ShareTeamButton";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 
 interface PageProps {
@@ -42,11 +44,12 @@ export default async function TeamPage({ params }: PageProps) {
   // Dynamic CSS variables so selected team's color is the main palette
   const teamStyles = getTeamStyleVariables(team.color, team.alternateColor);
 
-  // Parallel fetch schedule, news, and league standings
-  const [scheduleData, newsArticles, standingsData] = await Promise.all([
+  // Parallel fetch schedule, news, league standings, and personnel (leaders + injury report)
+  const [scheduleData, newsArticles, standingsData, personnelData] = await Promise.all([
     fetchTeamSchedule(team.id),
     fetchTeamNews(team),
     fetchLeagueStandings(),
+    fetchTeamPersonnel(team.id),
   ]);
 
   // Next game matchup spotlight
@@ -58,6 +61,11 @@ export default async function TeamPage({ params }: PageProps) {
   const teamStats = standingsData.standingsMap[team.id];
   const division = standingsData.divisions.find(
     (d) => d.conference === team.conference && d.division === team.division
+  );
+
+  // Conference teams for the full 16-team Playoff Picture
+  const conferenceTeams = Object.values(standingsData.standingsMap).filter(
+    (t) => t.conference === team.conference
   );
 
   // Divisional neighbors for fast cycling
@@ -163,15 +171,21 @@ export default async function TeamPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* External Links */}
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            {/* Action Buttons: Share & External Links */}
+            <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+              <ShareTeamButton
+                team={team}
+                teamStats={teamStats}
+                nextGame={scheduleData.games.find((g) => !g.completed)}
+                recordSummary={scheduleData.record.summary}
+              />
               <a
                 href={`https://www.espn.com/nfl/team/_/name/${team.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--input)] hover:bg-[var(--border)] text-xs font-semibold text-[var(--foreground)] border border-[var(--border)] transition-all shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] hover:bg-[var(--border)] text-xs font-semibold text-[var(--foreground)] border border-[var(--border)] transition-all shadow-xs cursor-pointer"
               >
-                <span>ESPN Clubhouse</span>
+                <span>ESPN</span>
                 <ExternalLink className="w-3.5 h-3.5 text-[var(--muted)]" />
               </a>
             </div>
@@ -188,6 +202,8 @@ export default async function TeamPage({ params }: PageProps) {
           newsArticles={newsArticles}
           division={division}
           teamStats={teamStats}
+          personnelData={personnelData}
+          conferenceTeams={conferenceTeams}
         />
       </div>
     </div>

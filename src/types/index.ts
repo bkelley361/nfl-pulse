@@ -154,3 +154,29 @@ export interface NewsArticle {
   imageUrl?: string;
   isOfficial?: boolean;
 }
+
+export interface PlayerLeader {
+  category: "passing" | "rushing" | "receiving" | "defense";
+  categoryLabel: string;
+  athleteId: string;
+  fullName: string;
+  jersey?: string;
+  position: string;
+  headshot?: string;
+  statLine: string;
+}
+
+export interface PlayerInjury {
+  id: string;
+  fullName: string;
+  position: string;
+  jersey?: string;
+  headshot?: string;
+  status: string; // "Questionable", "Doubtful", "Out", "Injured Reserve", "Day-To-Day"
+  details?: string;
+}
+
+export interface TeamPersonnelData {
+  leaders: PlayerLeader[];
+  injuries: PlayerInjury[];
+}
