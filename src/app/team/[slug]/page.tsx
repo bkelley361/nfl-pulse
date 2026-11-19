@@ -7,6 +7,7 @@ import {
   fetchTeamNews,
   fetchLeagueStandings,
   fetchTeamPersonnel,
+  fetchTeamSeasonStats,
 } from "@/lib/api";
 import { getTeamStyleVariables } from "@/lib/colors";
 import TeamDashboardView from "@/components/TeamDashboardView";
@@ -44,12 +45,13 @@ export default async function TeamPage({ params }: PageProps) {
   // Dynamic CSS variables so selected team's color is the main palette
   const teamStyles = getTeamStyleVariables(team.color, team.alternateColor);
 
-  // Parallel fetch schedule, news, league standings, and personnel (leaders + injury report)
-  const [scheduleData, newsArticles, standingsData, personnelData] = await Promise.all([
+  // Parallel fetch schedule, news, league standings, personnel, and team season statistics
+  const [scheduleData, newsArticles, standingsData, personnelData, seasonStats] = await Promise.all([
     fetchTeamSchedule(team.id),
     fetchTeamNews(team),
     fetchLeagueStandings(),
     fetchTeamPersonnel(team.id),
+    fetchTeamSeasonStats(team.id),
   ]);
 
   // Next game matchup spotlight
@@ -90,7 +92,7 @@ export default async function TeamPage({ params }: PageProps) {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-9">
-          {/* Navigation Bar: Back & Next/Prev Division Navigation */}
+          {/* Navigation Bar: Back on left, Share Pulse & Prev/Next Team on right */}
           <div className="flex items-center justify-between gap-4 mb-6">
             <Link
               href="/"
@@ -100,26 +102,35 @@ export default async function TeamPage({ params }: PageProps) {
               <span>All Franchises</span>
             </Link>
 
-            <div className="inline-flex items-center rounded-full bg-[var(--input)] p-1 border border-[var(--border)] shadow-2xs text-xs">
-              <Link
-                href={`/team/${prevTeam.slug}`}
-                className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
-                title={`Previous: ${prevTeam.displayName}`}
-              >
-                <ArrowLeft className="w-3 h-3" />
-                <span className="hidden sm:inline">{prevTeam.name}</span>
-                <span className="sm:hidden">{prevTeam.abbreviation}</span>
-              </Link>
-              <span className="text-[var(--border)]">•</span>
-              <Link
-                href={`/team/${nextTeam.slug}`}
-                className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
-                title={`Next: ${nextTeam.displayName}`}
-              >
-                <span className="hidden sm:inline">{nextTeam.name}</span>
-                <span className="sm:hidden">{nextTeam.abbreviation}</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
+            <div className="flex items-center gap-2.5">
+              <ShareTeamButton
+                team={team}
+                teamStats={teamStats}
+                nextGame={scheduleData.games.find((g) => !g.completed)}
+                recordSummary={scheduleData.record.summary}
+              />
+
+              <div className="inline-flex items-center rounded-full bg-[var(--input)] p-1 border border-[var(--border)] shadow-2xs text-xs">
+                <Link
+                  href={`/team/${prevTeam.slug}`}
+                  className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
+                  title={`Previous: ${prevTeam.displayName}`}
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  <span className="hidden sm:inline">{prevTeam.name}</span>
+                  <span className="sm:hidden">{prevTeam.abbreviation}</span>
+                </Link>
+                <span className="text-[var(--border)]">•</span>
+                <Link
+                  href={`/team/${nextTeam.slug}`}
+                  className="px-3 py-1 rounded-full text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card)] transition-all flex items-center gap-1.5"
+                  title={`Next: ${nextTeam.displayName}`}
+                >
+                  <span className="hidden sm:inline">{nextTeam.name}</span>
+                  <span className="sm:hidden">{nextTeam.abbreviation}</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -140,13 +151,24 @@ export default async function TeamPage({ params }: PageProps) {
               </div>
 
               <div>
-                <div className="flex flex-wrap items-center gap-2 mb-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
                   <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-[var(--input)] text-[var(--foreground)] border border-[var(--border)]">
                     {team.abbreviation}
                   </span>
                   <span className="text-xs font-medium text-[var(--muted)]">
                     {team.conference} {team.division}
                   </span>
+                  <span className="text-[var(--border)]">•</span>
+                  <a
+                    href={`https://www.espn.com/nfl/team/_/name/${team.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--input)] hover:bg-[var(--card)] text-[11px] font-medium text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)] transition-colors shadow-2xs cursor-pointer"
+                    title={`View ${team.displayName} on ESPN`}
+                  >
+                    <span>ESPN Hub</span>
+                    <ExternalLink className="w-3 h-3 text-[var(--muted)]" />
+                  </a>
                 </div>
 
                 <h1 className="font-editorial text-3xl sm:text-5xl font-medium text-[var(--foreground)] tracking-tight leading-none">
@@ -171,24 +193,30 @@ export default async function TeamPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Action Buttons: Share & External Links */}
-            <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
-              <ShareTeamButton
-                team={team}
-                teamStats={teamStats}
-                nextGame={scheduleData.games.find((g) => !g.completed)}
-                recordSummary={scheduleData.record.summary}
-              />
-              <a
-                href={`https://www.espn.com/nfl/team/_/name/${team.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] hover:bg-[var(--border)] text-xs font-semibold text-[var(--foreground)] border border-[var(--border)] transition-all shadow-xs cursor-pointer"
-              >
-                <span>ESPN</span>
-                <ExternalLink className="w-3.5 h-3.5 text-[var(--muted)]" />
-              </a>
-            </div>
+            {/* Quick Season Snapshot Capsule (balanced desktop side) */}
+            {teamStats && (
+              <div className="hidden lg:flex items-center gap-4 py-2.5 px-5 rounded-2xl bg-[var(--card)]/70 border border-[var(--border)] shadow-xs backdrop-blur-xs self-center">
+                <div className="text-center px-1">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Home</div>
+                  <div className="font-editorial text-sm font-bold text-[var(--foreground)] mt-0.5">{teamStats.homeRecord || "—"}</div>
+                </div>
+                <div className="w-px h-6 bg-[var(--border)]" />
+                <div className="text-center px-1">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Road</div>
+                  <div className="font-editorial text-sm font-bold text-[var(--foreground)] mt-0.5">{teamStats.roadRecord || "—"}</div>
+                </div>
+                <div className="w-px h-6 bg-[var(--border)]" />
+                <div className="text-center px-1">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Division</div>
+                  <div className="font-editorial text-sm font-bold text-[var(--foreground)] mt-0.5">{teamStats.divRecord || "—"}</div>
+                </div>
+                <div className="w-px h-6 bg-[var(--border)]" />
+                <div className="text-center px-1">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Playoff Seed</div>
+                  <div className="font-editorial text-sm font-bold text-team mt-0.5">#{teamStats.seed || (teamStats.rank === 1 ? "2" : "6")}</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -204,6 +232,7 @@ export default async function TeamPage({ params }: PageProps) {
           teamStats={teamStats}
           personnelData={personnelData}
           conferenceTeams={conferenceTeams}
+          seasonStats={seasonStats}
         />
       </div>
     </div>

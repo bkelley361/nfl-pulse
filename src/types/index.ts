@@ -180,3 +180,24 @@ export interface TeamPersonnelData {
   leaders: PlayerLeader[];
   injuries: PlayerInjury[];
 }
+
+export interface TeamStatMetric {
+  name: string;
+  label: string;
+  value: string;
+  rankDisplay?: string;
+  rank?: number;
+}
+
+export interface TeamSeasonStats {
+  summary: {
+    label: string;
+    value: string;
+    rankDisplay?: string;
+    subtext?: string;
+  }[];
+  passing: TeamStatMetric[];
+  rushing: TeamStatMetric[];
+  defense: TeamStatMetric[];
+  situational: TeamStatMetric[];
+}

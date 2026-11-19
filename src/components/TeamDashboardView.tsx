@@ -10,6 +10,7 @@ import type {
   DivisionStandingsGroup,
   TeamDivisionStats,
   TeamPersonnelData,
+  TeamSeasonStats,
 } from "@/types";
 import MatchupPredictor from "@/components/MatchupPredictor";
 import ScheduleView from "@/components/ScheduleView";
@@ -17,7 +18,8 @@ import NewsFeed from "@/components/NewsFeed";
 import DivisionStandings from "@/components/DivisionStandings";
 import TeamLeadersView from "@/components/TeamLeadersView";
 import InjuryReportView from "@/components/InjuryReportView";
-import { ArrowRight, Clock, Activity, Users } from "lucide-react";
+import TeamStatsView from "@/components/TeamStatsView";
+import { ArrowRight, Clock, Activity, Users, BarChart3 } from "lucide-react";
 import {
   SunburstIcon,
   EditorialPulse,
@@ -35,6 +37,7 @@ interface TeamDashboardViewProps {
   teamStats?: TeamDivisionStats;
   personnelData?: TeamPersonnelData;
   conferenceTeams?: TeamDivisionStats[];
+  seasonStats?: TeamSeasonStats | null;
 }
 
 // Computes playoff picture bracket status and clinch outlook
@@ -92,9 +95,10 @@ export default function TeamDashboardView({
   teamStats,
   personnelData,
   conferenceTeams,
+  seasonStats,
 }: TeamDashboardViewProps) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "schedule" | "standings" | "leaders" | "injuries" | "news"
+    "overview" | "schedule" | "standings" | "stats" | "leaders" | "injuries" | "news"
   >("overview");
 
   const nextGame = scheduleData.games.find((g: ScheduleGame) => !g.completed);
@@ -263,6 +267,23 @@ export default function TeamDashboardView({
             </button>
           )}
 
+          {seasonStats && (
+            <button
+              onClick={() => setActiveTab("stats")}
+              className={`whitespace-nowrap px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === "stats"
+                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Team Stats</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+                NFL Ranks
+              </span>
+            </button>
+          )}
+
           {personnelData?.leaders && personnelData.leaders.length > 0 && (
             <button
               onClick={() => setActiveTab("leaders")}
@@ -331,6 +352,52 @@ export default function TeamDashboardView({
                 leaders={personnelData.leaders}
                 teamColor={team.color}
               />
+            </section>
+          )}
+
+          {/* Season Production & NFL Rankings Preview */}
+          {seasonStats?.summary && seasonStats.summary.length > 0 && (
+            <section className="calm-card p-6 space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-emerald-500" />
+                  <h4 className="font-editorial text-lg font-medium text-[var(--foreground)]">
+                    Team Production & NFL Rankings
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setActiveTab("stats")}
+                  className="text-xs font-semibold text-team hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Full Statistics</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
+                {seasonStats.summary.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-[var(--input)]/50 border border-[var(--border)] text-center flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
+                        {item.label}
+                      </div>
+                      <div className="font-editorial text-sm font-bold text-[var(--foreground)] mt-1">
+                        {item.value}
+                      </div>
+                    </div>
+                    {item.rankDisplay && (
+                      <div className="mt-2">
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-team-tint text-team border border-team-tint">
+                          {item.rankDisplay}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </section>
           )}
 
@@ -453,6 +520,17 @@ export default function TeamDashboardView({
             currentTeamId={team.id}
             teamColor={team.color}
             conferenceTeams={conferenceTeams}
+          />
+        </div>
+      )}
+
+      {/* Tab: Comprehensive Team Statistics & Rankings */}
+      {activeTab === "stats" && (
+        <div className="calm-card p-6 sm:p-8 animate-in fade-in duration-200">
+          <TeamStatsView
+            seasonStats={seasonStats || null}
+            teamDisplayName={team.displayName}
+            teamColor={team.color}
           />
         </div>
       )}

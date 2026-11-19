@@ -11,6 +11,8 @@ import type {
   TeamPersonnelData,
   PlayerLeader,
   PlayerInjury,
+  TeamSeasonStats,
+  TeamStatMetric,
 } from "@/types";
 
 export function timeAgo(dateString: string): string {
@@ -810,5 +812,190 @@ export async function fetchTeamPersonnel(teamId: string): Promise<TeamPersonnelD
   }
 
   return result;
+}
+
+export async function fetchTeamSeasonStats(teamId: string): Promise<TeamSeasonStats | null> {
+  try {
+    const res = await fetch(
+      `https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/seasons/2026/types/2/teams/${teamId}/statistics`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const categories: any[] = data.splits?.categories || [];
+
+    const getStat = (catName: string, statName: string) => {
+      const cat = categories.find((c) => c.name === catName);
+      return cat?.stats?.find((s: any) => s.name === statName);
+    };
+
+    const formatMetric = (catName: string, statName: string, fallbackLabel?: string): TeamStatMetric | null => {
+      const s = getStat(catName, statName);
+      if (!s) return null;
+      return {
+        name: s.name,
+        label: fallbackLabel || s.displayName,
+        value: s.displayValue ?? String(s.value ?? "0"),
+        rank: typeof s.rank === "number" ? s.rank : undefined,
+        rankDisplay: s.rankDisplayValue || (s.rank ? `#${s.rank}` : undefined),
+      };
+    };
+
+    // Summary Cards (top 8 key stats with official NFL ranks)
+    const summary: TeamSeasonStats["summary"] = [];
+
+    const netYPG = getStat("passing", "netYardsPerGame");
+    if (netYPG) {
+      summary.push({
+        label: "Total Offense",
+        value: `${netYPG.displayValue} YPG`,
+        rankDisplay: netYPG.rankDisplayValue || `#${netYPG.rank}`,
+        subtext: "Yards per game",
+      });
+    }
+
+    const ppg =
+      getStat("rushing", "totalPointsPerGame") ||
+      getStat("passing", "totalPointsPerGame") ||
+      getStat("scoring", "totalPointsPerGame");
+    if (ppg) {
+      summary.push({
+        label: "Scoring Offense",
+        value: `${ppg.displayValue} PPG`,
+        rankDisplay: ppg.rankDisplayValue || `#${ppg.rank}`,
+        subtext: "Points per game",
+      });
+    }
+
+    const passYPG = getStat("passing", "passingYardsPerGame");
+    if (passYPG) {
+      summary.push({
+        label: "Passing Attack",
+        value: `${passYPG.displayValue} YPG`,
+        rankDisplay: passYPG.rankDisplayValue || `#${passYPG.rank}`,
+        subtext: "Pass yards per game",
+      });
+    }
+
+    const rushYPG = getStat("rushing", "rushingYardsPerGame");
+    if (rushYPG) {
+      summary.push({
+        label: "Rushing Attack",
+        value: `${rushYPG.displayValue} YPG`,
+        rankDisplay: rushYPG.rankDisplayValue || `#${rushYPG.rank}`,
+        subtext: "Ground yards per game",
+      });
+    }
+
+    const sacks = getStat("defensive", "sacks");
+    if (sacks) {
+      summary.push({
+        label: "Total Sacks",
+        value: `${sacks.displayValue} Sacks`,
+        rankDisplay: sacks.rankDisplayValue || `#${sacks.rank}`,
+        subtext: "Defensive pressure",
+      });
+    }
+
+    const qbr = getStat("passing", "QBRating");
+    if (qbr) {
+      summary.push({
+        label: "Passer Rating",
+        value: `${qbr.displayValue}`,
+        rankDisplay: qbr.rankDisplayValue || `#${qbr.rank}`,
+        subtext: "Passing efficiency",
+      });
+    }
+
+    const thirdDown = getStat("miscellaneous", "thirdDownConvPct");
+    if (thirdDown) {
+      summary.push({
+        label: "3rd Down %",
+        value: `${thirdDown.displayValue}%`,
+        rankDisplay: thirdDown.rankDisplayValue || `#${thirdDown.rank}`,
+        subtext: "Conversion rate",
+      });
+    }
+
+    const toDiff = getStat("miscellaneous", "turnOverDifferential");
+    if (toDiff) {
+      const valNum = Number(toDiff.displayValue);
+      const prefix = valNum > 0 ? "+" : "";
+      summary.push({
+        label: "Turnover Margin",
+        value: `${prefix}${toDiff.displayValue}`,
+        rankDisplay: toDiff.rankDisplayValue || `#${toDiff.rank}`,
+        subtext: "Takeaways vs giveaways",
+      });
+    }
+
+    // Passing Breakdown
+    const passingKeys = [
+      { cat: "passing", key: "netPassingYardsPerGame", label: "Pass Yards / Game" },
+      { cat: "passing", key: "passingTouchdowns", label: "Passing Touchdowns" },
+      { cat: "passing", key: "completionPct", label: "Completion Percentage" },
+      { cat: "passing", key: "QBRating", label: "Passer Rating" },
+      { cat: "passing", key: "interceptions", label: "Interceptions Thrown" },
+      { cat: "passing", key: "passingBigPlays", label: "20+ Yard Passes" },
+      { cat: "passing", key: "passingFirstDowns", label: "Passing 1st Downs" },
+      { cat: "passing", key: "sacks", label: "Sacks Allowed" },
+    ];
+    const passing = passingKeys
+      .map((k) => formatMetric(k.cat, k.key, k.label))
+      .filter((m): m is TeamStatMetric => m !== null);
+
+    // Rushing Breakdown
+    const rushingKeys = [
+      { cat: "rushing", key: "rushingYardsPerGame", label: "Rushing Yards / Game" },
+      { cat: "rushing", key: "yardsPerRushAttempt", label: "Yards / Carry" },
+      { cat: "rushing", key: "rushingTouchdowns", label: "Rushing Touchdowns" },
+      { cat: "rushing", key: "rushingFirstDowns", label: "Rushing 1st Downs" },
+      { cat: "rushing", key: "rushingBigPlays", label: "20+ Yard Runs" },
+      { cat: "rushing", key: "rushingAttempts", label: "Total Rush Attempts" },
+    ];
+    const rushing = rushingKeys
+      .map((k) => formatMetric(k.cat, k.key, k.label))
+      .filter((m): m is TeamStatMetric => m !== null);
+
+    // Defense & Havoc Breakdown
+    const defenseKeys = [
+      { cat: "defensive", key: "sacks", label: "Total Sacks" },
+      { cat: "defensive", key: "sackYards", label: "Sack Yards Lost" },
+      { cat: "defensive", key: "tacklesForLoss", label: "Tackles For Loss" },
+      { cat: "defensiveInterceptions", key: "interceptions", label: "Interceptions" },
+      { cat: "defensive", key: "passesDefended", label: "Passes Defended" },
+      { cat: "defensive", key: "kicksBlocked", label: "Kicks Blocked" },
+      { cat: "defensive", key: "soloTackles", label: "Solo Tackles" },
+    ];
+    const defense = defenseKeys
+      .map((k) => formatMetric(k.cat, k.key, k.label))
+      .filter((m): m is TeamStatMetric => m !== null);
+
+    // Situational & Efficiency
+    const situationalKeys = [
+      { cat: "miscellaneous", key: "thirdDownConvPct", label: "3rd Down Conversion %" },
+      { cat: "miscellaneous", key: "fourthDownConvPct", label: "4th Down Conversion %" },
+      { cat: "miscellaneous", key: "redzoneTouchdownPct", label: "Red Zone TD %" },
+      { cat: "miscellaneous", key: "redzoneScoringPct", label: "Red Zone Score %" },
+      { cat: "miscellaneous", key: "turnOverDifferential", label: "Turnover Margin" },
+      { cat: "miscellaneous", key: "totalTakeaways", label: "Total Takeaways" },
+      { cat: "miscellaneous", key: "totalGiveaways", label: "Total Giveaways" },
+      { cat: "miscellaneous", key: "firstDownsPerGame", label: "1st Downs / Game" },
+    ];
+    const situational = situationalKeys
+      .map((k) => formatMetric(k.cat, k.key, k.label))
+      .filter((m): m is TeamStatMetric => m !== null);
+
+    return {
+      summary,
+      passing,
+      rushing,
+      defense,
+      situational,
+    };
+  } catch (err) {
+    console.warn("fetchTeamSeasonStats error:", err);
+    return null;
+  }
 }
 
