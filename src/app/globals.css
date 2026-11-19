@@ -154,3 +154,29 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+/* Standings & Data Table horizontal scroll styling */
+.scroll-table {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-light) var(--input);
+}
+
+.scroll-table::-webkit-scrollbar {
+  height: 6px;
+}
+
+.scroll-table::-webkit-scrollbar-track {
+  background: var(--input);
+  border-radius: 9999px;
+  margin: 0 8px;
+}
+
+.scroll-table::-webkit-scrollbar-thumb {
+  background: var(--muted-light);
+  border-radius: 9999px;
+}
+
+.scroll-table::-webkit-scrollbar-thumb:hover {
+  background: var(--team-primary-readable, var(--team-primary));
+}
+

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { DivisionStandingsGroup } from "@/types";
-import { Shield } from "lucide-react";
+import { Shield, ArrowRight } from "lucide-react";
 
 interface DivisionStandingsProps {
   division: DivisionStandingsGroup;
@@ -32,24 +32,35 @@ export default function DivisionStandings({
           </p>
         </div>
 
-        <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-[var(--input)] border border-[var(--border)] text-[var(--muted)] self-start sm:self-auto">
-          {division.conference} • 4 Franchises
-        </span>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-[var(--input)] border border-[var(--border)] text-[var(--muted)]">
+            {division.conference} • 4 Franchises
+          </span>
+          <span className="text-[10px] font-medium px-2 py-1 rounded-full bg-[var(--input)] border border-[var(--border)] text-[var(--muted)] flex items-center gap-1">
+            <span>Scroll</span>
+            <ArrowRight className="w-2.5 h-2.5 text-team" />
+          </span>
+        </div>
       </div>
 
-      {/* Standings Table - Fits in one card with NO desktop scroll */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xs overflow-x-auto sm:overflow-x-visible">
-        <table className="w-full text-left text-xs table-auto sm:table-fixed">
+      {/* Standings Table - Smooth horizontal scroll with full detailed stats */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xs overflow-x-auto overscroll-x-contain scroll-table pb-1.5">
+        <table className="w-full text-left text-xs min-w-[880px]">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--input)]/60 text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-              <th className="py-3 px-3 sm:w-12 text-center">#</th>
-              <th className="py-3 px-3 sm:w-56">Franchise</th>
-              <th className="py-3 px-2 sm:w-20 text-center">W-L</th>
-              <th className="py-3 px-2 sm:w-16 text-center">Win%</th>
-              <th className="py-3 px-2 sm:w-14 text-center">GB</th>
-              <th className="py-3 px-2 sm:w-16 text-center">Div</th>
-              <th className="py-3 px-2 sm:w-16 text-center">Diff</th>
-              <th className="py-3 px-3 sm:w-20 text-center">Streak</th>
+              <th className="py-3 px-3 w-12 text-center">#</th>
+              <th className="py-3 px-4 min-w-[190px]">Franchise</th>
+              <th className="py-3 px-2 text-center min-w-[68px]">W-L</th>
+              <th className="py-3 px-2 text-center min-w-[60px]">Win%</th>
+              <th className="py-3 px-2 text-center min-w-[50px]">GB</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">Div</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">Conf</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">PF</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">PA</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">Diff</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">Home</th>
+              <th className="py-3 px-2 text-center min-w-[55px]">Road</th>
+              <th className="py-3 px-3 text-center min-w-[75px]">Streak</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -80,7 +91,7 @@ export default function DivisionStandings({
                   </td>
 
                   {/* Team */}
-                  <td className="py-3 px-3">
+                  <td className="py-3 px-4">
                     <Link
                       href={`/team/${t.slug}`}
                       className="inline-flex items-center gap-2.5 group truncate max-w-full"
@@ -125,6 +136,21 @@ export default function DivisionStandings({
                     {t.divRecord}
                   </td>
 
+                  {/* Conf */}
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
+                    {t.confRecord}
+                  </td>
+
+                  {/* PF */}
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--foreground)]">
+                    {t.pointsFor}
+                  </td>
+
+                  {/* PA */}
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
+                    {t.pointsAgainst}
+                  </td>
+
                   {/* Differential */}
                   <td className="py-3 px-2 text-center font-mono text-xs font-semibold">
                     <span
@@ -138,6 +164,16 @@ export default function DivisionStandings({
                     >
                       {t.differential}
                     </span>
+                  </td>
+
+                  {/* Home */}
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
+                    {t.homeRecord}
+                  </td>
+
+                  {/* Road */}
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
+                    {t.roadRecord}
                   </td>
 
                   {/* Streak */}
