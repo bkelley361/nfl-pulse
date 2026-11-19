@@ -1,47 +1,140 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d16;
-  --foreground: #f8fafc;
-  --card: #111827;
-  --card-foreground: #f8fafc;
-  --border: #1e293b;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
+  --background: #faf8f5;
+  --foreground: #1c1e24;
+  --card: #ffffff;
+  --card-elevated: #ffffff;
+  --card-foreground: #1c1e24;
+  --muted: #6b7280;
+  --muted-light: #9ca3af;
+  --border: #e7e3da;
+  --border-subtle: #f0ece3;
+  --input: #f3efe6;
+  --team-primary: #1e3a8a;
+  --team-primary-rgb: 30, 58, 138;
+  --team-secondary: #f59e0b;
+  --team-secondary-rgb: 245, 158, 11;
+  --team-contrast: #ffffff;
+}
+
+.dark {
+  --background: #0d0f12;
+  --foreground: #f3f4f6;
+  --card: #15181e;
+  --card-elevated: #1a1d24;
+  --card-foreground: #f3f4f6;
+  --muted: #9ca3af;
+  --muted-light: #6b7280;
+  --border: #232730;
+  --border-subtle: #1c2028;
+  --input: #121419;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-elevated: var(--card-elevated);
   --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
   --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-border-subtle: var(--border-subtle);
+  --color-input: var(--input);
+  --font-serif: var(--font-serif), Georgia, Cambria, serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, sans-serif;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Custom scrollbar */
+/* Editorial serif headings */
+.font-editorial {
+  font-family: var(--font-serif);
+  font-feature-settings: "kern", "liga", "clig";
+  letter-spacing: -0.02em;
+}
+
+/* Soft Tactile Cards inspired by Calm / System & Minimalist Dashboard */
+.calm-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 20px -2px rgba(35, 30, 20, 0.03), 0 2px 6px -1px rgba(35, 30, 20, 0.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .calm-card {
+  box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.35), 0 2px 8px -2px rgba(0, 0, 0, 0.2);
+}
+
+.calm-card:hover {
+  border-color: rgba(var(--team-primary-rgb), 0.35);
+}
+
+/* Tactile Pill Elements */
+.calm-pill {
+  border-radius: 9999px;
+  transition: all 0.15s ease;
+}
+
+/* Soft Inset Inputs */
+.calm-input {
+  background-color: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  color: var(--foreground);
+  transition: all 0.15s ease;
+}
+
+.calm-input:focus {
+  outline: none;
+  border-color: var(--team-primary);
+  box-shadow: 0 0 0 3px rgba(var(--team-primary-rgb), 0.15);
+}
+
+/* Dynamic Team Helper Classes */
+.bg-team {
+  background-color: var(--team-primary);
+  color: var(--team-contrast);
+}
+
+.border-team {
+  border-color: var(--team-primary);
+}
+
+.text-team {
+  color: var(--team-primary);
+}
+
+.bg-team-tint {
+  background-color: rgba(var(--team-primary-rgb), 0.08);
+}
+
+.border-team-tint {
+  border-color: rgba(var(--team-primary-rgb), 0.22);
+}
+
+/* Custom delicate scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0f19;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #252e42;
-  border-radius: 4px;
+  background: var(--border);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: var(--muted);
 }

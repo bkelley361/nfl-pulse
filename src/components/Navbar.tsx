@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { NFL_TEAMS } from "@/data/teams";
-import { Search, ChevronDown, Trophy, Activity, ExternalLink, X } from "lucide-react";
+import ThemeToggle from "@/components/ThemeToggle";
+import { Search, ChevronDown, Sparkles, X, Compass } from "lucide-react";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,7 +14,6 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Find currently selected team if on a team page
   const currentSlug = pathname.startsWith("/team/")
     ? pathname.replace("/team/", "").toLowerCase()
     : null;
@@ -42,71 +42,74 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/85 backdrop-blur-md transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
-          {/* Logo */}
+        <div className="flex items-center justify-between h-18 gap-4">
+          {/* Logo & Editorial Brand */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-amber-500 p-0.5 shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-[#090d16] rounded-[10px] flex items-center justify-center">
-                <Activity className="w-5 h-5 text-blue-400 group-hover:text-amber-400 transition-colors" />
-              </div>
+            <div className="w-8 h-8 rounded-full border border-[var(--border)] bg-[var(--card)] flex items-center justify-center shadow-xs group-hover:border-slate-400 transition-colors">
+              {/* Subtle sunburst / compass inspired by image 1 */}
+              <Compass className="w-4 h-4 text-[var(--foreground)] group-hover:rotate-45 transition-transform duration-300" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-lg tracking-wider text-white">NFL</span>
-                <span className="font-extrabold text-lg text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-amber-400">
-                  PULSE
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-editorial text-xl font-medium tracking-tight text-[var(--foreground)]">
+                  NFL
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-semibold border border-blue-500/20">
-                  2026
+                <span className="text-xs font-light text-[var(--muted)]">/</span>
+                <span className="font-editorial italic text-xl font-medium text-[var(--foreground)]">
+                  Pulse
                 </span>
               </div>
             </div>
           </Link>
 
-          {/* Center / Team Quick Switcher */}
+          {/* Center Team Quick Switcher (Pill style from Image 4) */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-slate-700/80 bg-slate-900/80 hover:bg-slate-800/90 text-sm font-medium text-slate-200 transition-all shadow-sm hover:border-slate-600"
+              className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-[var(--border)] bg-[var(--card)] hover:border-slate-400 dark:hover:border-slate-600 text-xs font-medium text-[var(--foreground)] transition-all shadow-xs"
             >
               {currentTeam ? (
                 <>
                   <img
                     src={currentTeam.logo}
                     alt={currentTeam.displayName}
-                    className="w-5 h-5 object-contain"
+                    className="w-4 h-4 object-contain"
                   />
                   <span className="hidden sm:inline font-semibold">{currentTeam.displayName}</span>
                   <span className="sm:hidden font-bold">{currentTeam.abbreviation}</span>
                 </>
               ) : (
                 <>
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <span>Select NFL Team</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="text-[var(--muted)]">Choose NFL Team</span>
                 </>
               )}
-              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-[var(--muted)] transition-transform ${
+                  isOpen ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {/* Dropdown Menu */}
             {isOpen && (
-              <div className="absolute right-0 sm:left-1/2 sm:-translate-x-1/2 mt-2 w-80 sm:w-96 rounded-xl border border-slate-700/80 bg-[#0d1322] shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 sm:left-1/2 sm:-translate-x-1/2 mt-2 w-80 sm:w-96 rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="relative mb-2">
-                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
                   <input
                     type="text"
                     placeholder="Search all 32 teams..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     autoFocus
-                    className="w-full bg-slate-900/90 border border-slate-750 rounded-lg pl-9 pr-8 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-[var(--input)] border border-[var(--border)] rounded-full pl-8.5 pr-8 py-2 text-xs text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:border-slate-400 transition-colors"
                   />
                   {search && (
                     <button
                       onClick={() => setSearch("")}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--foreground)]"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -115,7 +118,7 @@ export default function Navbar() {
 
                 <div className="max-h-72 overflow-y-auto space-y-1 pr-1">
                   {filteredTeams.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400">
+                    <div className="p-4 text-center text-xs text-[var(--muted)]">
                       No teams found for "{search}"
                     </div>
                   ) : (
@@ -123,28 +126,28 @@ export default function Navbar() {
                       <button
                         key={t.id}
                         onClick={() => selectTeam(t.slug)}
-                        className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors text-sm group ${
+                        className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-colors text-xs group ${
                           t.slug === currentSlug
-                            ? "bg-blue-600/20 text-blue-300 border border-blue-500/30 font-medium"
-                            : "hover:bg-slate-800/70 text-slate-200"
+                            ? "bg-slate-100 dark:bg-slate-800 font-semibold"
+                            : "hover:bg-[var(--input)] text-[var(--foreground)]"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5">
                           <img
                             src={t.logo}
                             alt={t.displayName}
-                            className="w-6 h-6 object-contain"
+                            className="w-5 h-5 object-contain"
                           />
                           <div>
-                            <div className="font-medium text-slate-100 group-hover:text-white">
+                            <div className="font-medium text-[var(--foreground)]">
                               {t.displayName}
                             </div>
-                            <div className="text-[11px] text-slate-400">
+                            <div className="text-[10px] text-[var(--muted)]">
                               {t.conference} {t.division}
                             </div>
                           </div>
                         </div>
-                        <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-[var(--muted)]">
                           {t.abbreviation}
                         </span>
                       </button>
@@ -155,14 +158,15 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Action */}
+          {/* Right: Theme Toggle & All Teams Link */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="text-xs sm:text-sm font-medium text-slate-300 hover:text-white transition-colors px-2.5 py-1.5 rounded-md hover:bg-slate-800/60"
+              className="hidden sm:inline-block text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors px-2.5 py-1.5 rounded-full hover:bg-[var(--input)]"
             >
               All Teams
             </Link>
+            <ThemeToggle />
           </div>
         </div>
       </div>

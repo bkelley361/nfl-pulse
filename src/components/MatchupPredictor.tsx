@@ -1,6 +1,7 @@
 import React from "react";
 import type { MatchupPredictorData, ScheduleGame } from "@/types";
-import { TrendingUp, Tv, MapPin, Calendar, Percent, ShieldAlert, Award } from "lucide-react";
+import WinProbabilityWave from "./WinProbabilityWave";
+import { TrendingUp, Tv, MapPin, Calendar, Award, ArrowUpRight } from "lucide-react";
 
 interface MatchupPredictorProps {
   matchup: MatchupPredictorData | null;
@@ -15,246 +16,241 @@ export default function MatchupPredictor({
 }: MatchupPredictorProps) {
   if (!matchup && !nextGame) {
     return (
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center">
-        <p className="text-slate-400 text-sm">No upcoming matchup scheduled.</p>
+      <div className="calm-card p-8 text-center">
+        <p className="text-[var(--muted)] text-sm font-sans">No upcoming matchup scheduled.</p>
       </div>
     );
   }
 
-  // If matchup data is present
   if (matchup) {
-    const { team, opponent, weekText, venueName, broadcast, overUnder, spreadDetails, providerName } = matchup;
+    const { team, opponent, weekText, venueName, broadcast, overUnder, spreadDetails } = matchup;
 
     const teamWinProj = team.winProjection ?? 50;
     const oppWinProj = opponent.winProjection ?? 50;
     const teamIsFavored = teamWinProj >= oppWinProj;
-
     const hasBettingOdds = matchup.hasOdds && (team.impliedWinPct !== undefined || team.moneyline !== undefined);
 
     const formattedDate = nextGame?.shortDate || (matchup.gameDate
-      ? new Date(matchup.gameDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+      ? new Date(matchup.gameDate).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
       : "Upcoming");
 
     return (
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0e1628] via-[#0d1424] to-[#090d16] border border-slate-800/90 shadow-2xl p-6 sm:p-8">
-        {/* Glow effects */}
+      <div className="calm-card p-6 sm:p-9 relative overflow-hidden">
+        {/* Soft atmospheric gradient in the team's primary color */}
         <div
-          className="absolute -top-24 -left-24 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none"
+          className="absolute -top-32 -left-32 w-80 h-80 rounded-full blur-3xl opacity-12 pointer-events-none"
           style={{ backgroundColor: team.color }}
         />
         <div
-          className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-15 pointer-events-none"
+          className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full blur-3xl opacity-10 pointer-events-none"
           style={{ backgroundColor: opponent.color }}
         />
 
-        {/* Header bar */}
-        <div className="relative flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-slate-800/70">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold tracking-wide uppercase border border-blue-500/20 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5" />
+        {/* Section 01: Next Matchup Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-6 border-b border-[var(--border)]">
+          <div className="flex items-center gap-3">
+            <span className="font-editorial text-xs font-semibold text-[var(--muted)]">
+              01
+            </span>
+            <span className="text-[11px] font-bold tracking-widest uppercase text-[var(--foreground)]">
               Next Matchup • {weekText}
             </span>
             {broadcast && (
-              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1 border border-slate-700">
-                <Tv className="w-3 h-3 text-amber-400" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-[11px] font-semibold text-[var(--foreground)]">
+                <Tv className="w-3 h-3 text-amber-500" />
                 {broadcast}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-400">
+          <div className="flex items-center gap-4 text-xs text-[var(--muted)]">
             <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <Calendar className="w-3.5 h-3.5" />
               <span>{formattedDate}</span>
             </div>
             {venueName && (
               <div className="hidden sm:flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <MapPin className="w-3.5 h-3.5" />
                 <span className="truncate max-w-[200px]">{venueName}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Teams Spotlight */}
-        <div className="relative my-6 grid grid-cols-5 items-center gap-4">
-          {/* Selected Team */}
-          <div className="col-span-2 flex flex-col items-center sm:items-start text-center sm:text-left">
-            <div className="flex items-center gap-4">
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2.5 flex items-center justify-center bg-slate-900/80 border border-slate-750 shadow-lg"
-                style={{ borderColor: `${team.color}40` }}
-              >
-                <img
-                  src={team.logo}
-                  alt={team.displayName}
-                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
-                />
-              </div>
-              <div className="hidden sm:block">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {matchup.isHome ? "Home" : "Away"}
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                  {team.displayName}
-                </h2>
-                {team.record && (
-                  <span className="text-xs font-semibold text-slate-400">
-                    Record: {team.record}
-                  </span>
-                )}
-              </div>
+        {/* Team Matchup Spotlight */}
+        <div className="my-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          {/* Selected Team Profile (Left 5 cols) */}
+          <div className="md:col-span-5 flex items-center gap-4">
+            <div
+              className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl p-3 bg-[var(--card)] border border-[var(--border)] flex items-center justify-center shadow-xs flex-shrink-0"
+              style={{
+                boxShadow: `0 8px 24px -6px ${team.color}35`,
+              }}
+            >
+              <img
+                src={team.logo}
+                alt={team.displayName}
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+              />
             </div>
-            <div className="sm:hidden mt-2">
-              <div className="font-bold text-sm text-white">{team.name}</div>
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                {matchup.isHome ? "Home" : "Away"}
+              </div>
+              <h2 className="font-editorial text-2xl sm:text-3xl font-medium text-[var(--foreground)] leading-tight">
+                {team.displayName}
+              </h2>
               {team.record && (
-                <div className="text-[11px] text-slate-400 font-medium">({team.record})</div>
+                <div className="text-xs text-[var(--muted)] mt-0.5 font-medium">
+                  2026 Record: <strong className="text-[var(--foreground)]">{team.record}</strong>
+                </div>
               )}
             </div>
           </div>
 
-          {/* VS Divider */}
-          <div className="col-span-1 flex flex-col items-center justify-center text-center">
-            <div className="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-300 font-black text-xs shadow-inner">
+          {/* Center VS pill badge (2 cols) */}
+          <div className="md:col-span-2 flex flex-col items-center justify-center text-center">
+            <div className="w-10 h-10 rounded-full bg-[var(--input)] border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--muted)] font-mono shadow-inner">
               VS
             </div>
           </div>
 
-          {/* Opponent */}
-          <div className="col-span-2 flex flex-col items-center sm:items-end text-center sm:text-right">
-            <div className="flex items-center justify-end gap-4">
-              <div className="hidden sm:block text-right">
-                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {!matchup.isHome ? "Home" : "Away"}
-                </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
-                  {opponent.displayName}
-                </h2>
-                {opponent.record && (
-                  <span className="text-xs font-semibold text-slate-400">
-                    Record: {opponent.record}
-                  </span>
-                )}
+          {/* Opponent Profile (Right 5 cols) */}
+          <div className="md:col-span-5 flex items-center justify-start md:justify-end gap-4 text-left md:text-right">
+            <div className="order-2 md:order-1">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                {!matchup.isHome ? "Home" : "Away"}
               </div>
-              <div
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-2.5 flex items-center justify-center bg-slate-900/80 border border-slate-750 shadow-lg"
-                style={{ borderColor: `${opponent.color}40` }}
-              >
-                <img
-                  src={opponent.logo}
-                  alt={opponent.displayName}
-                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
+              <h2 className="font-editorial text-2xl sm:text-3xl font-medium text-[var(--foreground)] leading-tight">
+                {opponent.displayName}
+              </h2>
+              {opponent.record && (
+                <div className="text-xs text-[var(--muted)] mt-0.5 font-medium">
+                  Record: <strong className="text-[var(--foreground)]">{opponent.record}</strong>
+                </div>
+              )}
+            </div>
+            <div
+              className="order-1 md:order-2 w-18 h-18 sm:w-20 sm:h-20 rounded-2xl p-3 bg-[var(--card)] border border-[var(--border)] flex items-center justify-center shadow-xs flex-shrink-0"
+              style={{
+                boxShadow: `0 8px 24px -6px ${opponent.color}25`,
+              }}
+            >
+              <img
+                src={opponent.logo}
+                alt={opponent.displayName}
+                className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section 02: Organic Wave Visualization (from Image 1 & 2) */}
+        <div className="mt-8 pt-6 border-t border-[var(--border)]">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="font-editorial text-xs font-semibold text-[var(--muted)]">02</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--foreground)]">
+                ESPN FPI Win Probability Model
+              </span>
+            </div>
+            <div className="text-xs text-[var(--muted)] font-sans">
+              Model favors:{" "}
+              <strong className="text-[var(--foreground)]">
+                {teamIsFavored ? team.name : opponent.name} (
+                {Math.max(teamWinProj, oppWinProj)}%)
+              </strong>
+            </div>
+          </div>
+
+          {/* Wave Area Chart */}
+          <div className="rounded-2xl bg-[var(--input)]/60 border border-[var(--border)] p-4 sm:p-5">
+            <WinProbabilityWave
+              teamName={team.name}
+              oppName={opponent.name}
+              teamPct={teamWinProj}
+              oppPct={oppWinProj}
+              teamColor={team.color}
+              oppColor={opponent.color}
+            />
+
+            {/* Tactile Progress Bar (Image 4 Component 06) */}
+            <div className="mt-4 pt-3 border-t border-[var(--border)]/70">
+              <div className="flex items-center justify-between text-xs font-semibold text-[var(--foreground)] mb-2">
+                <span>{team.displayName}</span>
+                <span className="font-editorial text-base font-bold">{teamWinProj}%</span>
+              </div>
+              <div className="w-full h-3 rounded-full bg-[var(--border)] p-0.5 overflow-hidden flex shadow-inner">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${teamWinProj}%`,
+                    backgroundColor: team.color,
+                  }}
                 />
               </div>
             </div>
-            <div className="sm:hidden mt-2">
-              <div className="font-bold text-sm text-white">{opponent.name}</div>
-              {opponent.record && (
-                <div className="text-[11px] text-slate-400 font-medium">({opponent.record})</div>
-              )}
-            </div>
           </div>
         </div>
 
-        {/* Win Probability Bar (FPI Matchup Predictor) */}
-        <div className="relative mt-6 p-5 rounded-2xl bg-slate-950/70 border border-slate-800">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                ESPN FPI Matchup Predictor
+        {/* Section 03: Market Consensus & Betting Odds (Image 4 card style) */}
+        {hasBettingOdds && (
+          <div className="mt-6 pt-6 border-t border-[var(--border)]">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="font-editorial text-xs font-semibold text-[var(--muted)]">03</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--foreground)]">
+                Market Consensus & Implied Probabilities
               </span>
             </div>
-            <span className="text-xs text-slate-400 font-medium">
-              Favors:{" "}
-              <strong className="text-white">
-                {teamIsFavored ? team.shortDisplayName || team.name : opponent.shortDisplayName || opponent.name} (
-                {Math.max(teamWinProj, oppWinProj)}%)
-              </strong>
-            </span>
-          </div>
 
-          {/* Dual Bar */}
-          <div className="h-6 w-full rounded-xl overflow-hidden flex bg-slate-800 p-0.5 border border-slate-700/80">
-            <div
-              className="h-full rounded-l-lg transition-all duration-700 flex items-center justify-start px-2 font-black text-xs text-white"
-              style={{
-                width: `${teamWinProj}%`,
-                backgroundColor: team.color || "#3b82f6",
-              }}
-            >
-              {teamWinProj > 15 && `${teamWinProj}%`}
-            </div>
-            <div
-              className="h-full rounded-r-lg transition-all duration-700 flex items-center justify-end px-2 font-black text-xs text-white"
-              style={{
-                width: `${oppWinProj}%`,
-                backgroundColor: opponent.color || "#ef4444",
-              }}
-            >
-              {oppWinProj > 15 && `${oppWinProj}%`}
-            </div>
-          </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+              <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
+                  Point Spread
+                </div>
+                <div className="font-editorial text-xl font-bold text-[var(--foreground)] mt-1">
+                  {spreadDetails || team.spread || "PK"}
+                </div>
+                <div className="text-[11px] text-[var(--muted)] mt-0.5">Consensus line</div>
+              </div>
 
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mt-2 px-1">
-            <span className="flex items-center gap-1.5">
-              <span
-                className="w-2.5 h-2.5 rounded-full inline-block"
-                style={{ backgroundColor: team.color }}
-              />
-              {team.shortDisplayName || team.name}: {teamWinProj}%
-            </span>
-            <span className="flex items-center gap-1.5">
-              {opponent.shortDisplayName || opponent.name}: {oppWinProj}%
-              <span
-                className="w-2.5 h-2.5 rounded-full inline-block"
-                style={{ backgroundColor: opponent.color }}
-              />
-            </span>
-          </div>
-        </div>
+              <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
+                  Over / Under
+                </div>
+                <div className="font-editorial text-xl font-bold text-[var(--foreground)] mt-1">
+                  {overUnder ? `${overUnder} pts` : "--"}
+                </div>
+                <div className="text-[11px] text-[var(--muted)] mt-0.5">Game total</div>
+              </div>
 
-        {/* Vegas / Market Odds & Implied Win Probability */}
-        {hasBettingOdds && (
-          <div className="relative mt-4 pt-4 border-t border-slate-800/60 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <div className="text-[10px] uppercase font-bold text-slate-400">
-                Spread
+              <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
+                  Moneyline
+                </div>
+                <div className="font-editorial text-xl font-bold text-[var(--foreground)] mt-1">
+                  {team.moneyline ? (team.moneyline > 0 ? `+${team.moneyline}` : team.moneyline) : "--"}
+                </div>
+                <div className="text-[11px] text-[var(--muted)] mt-0.5">
+                  Opp: {opponent.moneyline ? (opponent.moneyline > 0 ? `+${opponent.moneyline}` : opponent.moneyline) : "--"}
+                </div>
               </div>
-              <div className="text-sm font-black text-slate-100 mt-0.5">
-                {spreadDetails || team.spread || "PK"}
-              </div>
-              <div className="text-[10px] text-slate-400">Consensus line</div>
-            </div>
 
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <div className="text-[10px] uppercase font-bold text-slate-400">
-                Total (O/U)
+              <div className="p-4 rounded-2xl bg-[var(--card)] border border-[var(--border)] shadow-xs">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
+                  Implied Win %
+                </div>
+                <div className="font-editorial text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                  {team.impliedWinPct ? `${team.impliedWinPct}%` : "--"}
+                </div>
+                <div className="text-[11px] text-[var(--muted)] mt-0.5">Vig-free market odds</div>
               </div>
-              <div className="text-sm font-black text-slate-100 mt-0.5">
-                {overUnder ? `${overUnder} pts` : "--"}
-              </div>
-              <div className="text-[10px] text-slate-400">Game Over/Under</div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <div className="text-[10px] uppercase font-bold text-slate-400">
-                Moneyline
-              </div>
-              <div className="text-sm font-black text-slate-100 mt-0.5">
-                {team.moneyline ? (team.moneyline > 0 ? `+${team.moneyline}` : team.moneyline) : "--"}
-              </div>
-              <div className="text-[10px] text-slate-400">Opp: {opponent.moneyline ? (opponent.moneyline > 0 ? `+${opponent.moneyline}` : opponent.moneyline) : "--"}</div>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-              <div className="text-[10px] uppercase font-bold text-slate-400">
-                Market Implied Win %
-              </div>
-              <div className="text-sm font-black text-emerald-400 mt-0.5">
-                {team.impliedWinPct ? `${team.impliedWinPct}%` : "--"}
-              </div>
-              <div className="text-[10px] text-slate-400">Vig-free odds</div>
             </div>
           </div>
         )}
@@ -262,30 +258,31 @@ export default function MatchupPredictor({
     );
   }
 
-  // Fallback if only nextGame exists from schedule
   return (
-    <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-xs font-bold text-blue-400 uppercase tracking-wide">
+    <div className="calm-card p-6">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
           Next Matchup • {nextGame?.week}
         </span>
-        <span className="text-xs text-slate-400">{nextGame?.shortDate}</span>
+        <span className="text-xs text-[var(--muted)]">{nextGame?.shortDate}</span>
       </div>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
             src={nextGame?.opponent.logo}
             alt={nextGame?.opponent.displayName}
-            className="w-12 h-12 object-contain"
+            className="w-10 h-10 object-contain"
           />
           <div>
-            <div className="text-xs text-slate-400">{nextGame?.isHome ? "vs" : "@"} Opponent</div>
-            <div className="text-lg font-bold text-white">{nextGame?.opponent.displayName}</div>
+            <div className="text-xs text-[var(--muted)]">{nextGame?.isHome ? "vs" : "@"} Opponent</div>
+            <div className="font-editorial text-lg font-bold text-[var(--foreground)]">
+              {nextGame?.opponent.displayName}
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xs text-slate-400">{nextGame?.venue?.fullName}</div>
-          <div className="text-sm font-semibold text-slate-200">{nextGame?.statusDetail}</div>
+          <div className="text-xs text-[var(--muted)]">{nextGame?.venue?.fullName}</div>
+          <div className="text-sm font-semibold text-[var(--foreground)]">{nextGame?.statusDetail}</div>
         </div>
       </div>
     </div>

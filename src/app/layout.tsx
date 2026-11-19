@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const newsreader = Newsreader({
+  variable: "--font-serif",
   subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "NFL Pulse — Team Schedules, Win Probabilities & News Aggregator",
+  title: "NFL Pulse — Real-Time NFL Intelligence & News Hub",
   description:
-    "Real-time NFL command center for all 32 teams. Track schedules, computer win probabilities, betting odds, and aggregated team news.",
+    "Calm, editorial NFL command center for all 32 teams. Live 18-week schedules, ESPN FPI computer win probabilities, betting consensus, and real-time aggregated beat reporting.",
 };
 
 export default function RootLayout({
@@ -27,23 +31,50 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      suppressHydrationWarning
+      className={`${jakarta.variable} ${newsreader.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#090d16] text-slate-100 selection:bg-blue-600 selection:text-white">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <footer className="border-t border-slate-800/80 bg-[#070a11] py-8 text-center text-xs text-slate-400">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <span className="font-bold tracking-wider text-slate-200">NFL PULSE</span>
-              <span className="text-slate-500">•</span>
-              <span>All 32 Teams Intelligence Hub</span>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const saved = localStorage.getItem('nfl-pulse-theme');
+                  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  const theme = saved || (prefersDark ? 'dark' : 'light');
+                  if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col transition-colors duration-200">
+        <ThemeProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <footer className="border-t border-[var(--border)] bg-[var(--background)] py-10 text-xs transition-colors">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="font-editorial text-sm font-semibold tracking-tight text-[var(--foreground)]">
+                  NFL Pulse
+                </span>
+                <span className="text-[var(--border)]">•</span>
+                <span className="text-[var(--muted)] font-sans">
+                  A calmer digital sports space
+                </span>
+              </div>
+              <p className="text-[var(--muted)] font-sans">
+                Real-time schedules, ESPN FPI model projections & aggregated news for all 32 teams.
+              </p>
             </div>
-            <p className="text-slate-400">
-              Data powered by ESPN API, FPI Predictor & Aggregated Media Feeds.
-            </p>
-          </div>
-        </footer>
+          </footer>
+        </ThemeProvider>
       </body>
     </html>
   );
