@@ -191,7 +191,13 @@ export default function FloatingTeamSwitcher() {
           </>
         ) : (
           <>
-            <SunburstIcon className="w-4 h-4 text-amber-500" />
+            <div className="w-5 h-5 rounded-md bg-[var(--input)] flex items-center justify-center overflow-hidden border border-[var(--border)]">
+              <img
+                src="/logo.png"
+                alt="NFL Pulse"
+                className="w-4 h-4 object-contain"
+              />
+            </div>
             <span className="font-semibold text-xs text-[var(--foreground)]">
               Switch Team
             </span>

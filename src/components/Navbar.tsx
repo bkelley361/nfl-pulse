@@ -11,8 +11,12 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo & Editorial Brand */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 rounded-full border border-[var(--border)] bg-[var(--card)] flex items-center justify-center shadow-xs group-hover:border-slate-400 transition-colors">
-              <FanSunburstLogo className="w-4 h-4 text-team group-hover:scale-110 transition-transform duration-300" />
+            <div className="w-9 h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] flex items-center justify-center shadow-xs group-hover:border-slate-400 dark:group-hover:border-slate-600 transition-all p-1 overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="NFL Pulse Logo"
+                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 drop-shadow-2xs"
+              />
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">
