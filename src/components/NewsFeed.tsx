@@ -9,6 +9,106 @@ interface NewsFeedProps {
   teamDisplayName: string;
 }
 
+// Estimates card height in pixels to greedily balance columns and eliminate blank spaces
+function estimateCardHeight(article: NewsArticle): number {
+  if (article.imageUrl) {
+    return 340;
+  }
+  let h = 125;
+  if (article.title.length > 50) h += 22;
+  if (article.description) h += 36;
+  return h;
+}
+
+// Distributes articles into balanced columns based on accumulated height
+function distributeArticles(articles: NewsArticle[], numCols: number): NewsArticle[][] {
+  const cols: NewsArticle[][] = Array.from({ length: numCols }, () => []);
+  const heights: number[] = Array.from({ length: numCols }, () => 0);
+
+  articles.forEach((article) => {
+    // Find column with the lowest current height
+    let shortestColIndex = 0;
+    for (let i = 1; i < numCols; i++) {
+      if (heights[i] < heights[shortestColIndex]) {
+        shortestColIndex = i;
+      }
+    }
+
+    cols[shortestColIndex].push(article);
+    heights[shortestColIndex] += estimateCardHeight(article) + 16; // 16px is gap-4
+  });
+
+  return cols;
+}
+
+function NewsCard({ article }: { article: NewsArticle }) {
+  const hasImage = Boolean(article.imageUrl);
+
+  return (
+    <a
+      href={article.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group calm-card hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between p-4 sm:p-5 hover:border-team-tint hover:shadow-md"
+    >
+      <div>
+        {/* Photo if available */}
+        {hasImage && (
+          <div className="relative w-full rounded-xl overflow-hidden mb-3 bg-[var(--input)] aspect-[16/10]">
+            <img
+              src={article.imageUrl}
+              alt={article.title}
+              className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
+              loading="lazy"
+            />
+            <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-wider">
+              {article.isOfficial ? "ESPN Official" : "Beat Feature"}
+            </div>
+          </div>
+        )}
+
+        {/* Source badge + Time ago row */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span
+            className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold truncate max-w-[170px] ${
+              article.isOfficial
+                ? "bg-team-tint text-team border border-team-tint font-bold"
+                : "bg-[var(--input)] text-[var(--muted)] border border-[var(--border)] font-medium"
+            }`}
+          >
+            {article.source}
+          </span>
+
+          <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted)] font-mono shrink-0">
+            <Clock className="w-3 h-3 text-[var(--muted-light)]" />
+            {article.relativeTime}
+          </span>
+        </div>
+
+        {/* Headline */}
+        <h4 className="font-editorial font-semibold text-sm sm:text-base text-[var(--foreground)] group-hover:text-team transition-colors leading-snug line-clamp-3">
+          {article.title}
+        </h4>
+
+        {/* Description snippet */}
+        {article.description && (
+          <p className="text-xs text-[var(--muted)] mt-1.5 line-clamp-2 leading-relaxed">
+            {article.description}
+          </p>
+        )}
+      </div>
+
+      {/* Footer / Read link */}
+      <div className="mt-3.5 pt-2.5 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--muted)] group-hover:text-team transition-colors">
+        <span className="text-[11px] font-semibold">Read Coverage</span>
+        <span className="w-5.5 h-5.5 rounded-full bg-[var(--input)] flex items-center justify-center group-hover:bg-team group-hover:text-white transition-all shadow-2xs">
+          <ArrowUpRight className="w-3 h-3" />
+        </span>
+      </div>
+    </a>
+  );
+}
+
 export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
   const [filter, setFilter] = useState<"ALL" | "ESPN" | "WIRE">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,6 +134,16 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
     });
   }, [articles, filter, searchQuery]);
 
+  // Greedily distribute into independent vertical columns to avoid CSS Grid row height gaps
+  const tabletColumns = useMemo(
+    () => distributeArticles(filteredArticles, 2),
+    [filteredArticles]
+  );
+  const desktopColumns = useMemo(
+    () => distributeArticles(filteredArticles, 3),
+    [filteredArticles]
+  );
+
   const espnCount = articles.filter(
     (a) => a.isOfficial || a.source.toLowerCase().includes("espn")
   ).length;
@@ -53,7 +163,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
             </h3>
           </div>
           <p className="text-xs text-[var(--muted)] mt-0.5">
-            Real-time coverage organized by latest reporting in a responsive bento box layout.
+            Real-time coverage organized in an autofit bento layout with no empty gaps.
           </p>
         </div>
 
@@ -139,7 +249,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
         </div>
       )}
 
-      {/* Bento Box Grid (Compact cards when no picture, hero cards with photos) */}
+      {/* Autofit Bento Masonry Columns (Zero blank space, smaller cards stack tightly underneath) */}
       {filteredArticles.length === 0 ? (
         <div className="calm-card p-12 text-center">
           <Newspaper className="w-8 h-8 mx-auto text-[var(--muted-light)] mb-3" />
@@ -151,96 +261,36 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-          {filteredArticles.map((article, idx) => {
-            const hasImage = Boolean(article.imageUrl);
-            // Feature the first 1-2 articles with images as wider bento spans on large screens
-            const isFeatured = hasImage && idx < 2;
+        <>
+          {/* Mobile Layout: 1 Column */}
+          <div className="flex flex-col gap-4 md:hidden">
+            {filteredArticles.map((article) => (
+              <NewsCard key={article.id} article={article} />
+            ))}
+          </div>
 
-            return (
-              <a
-                key={article.id}
-                href={article.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`group calm-card hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between ${
-                  isFeatured
-                    ? "md:col-span-2 p-5 sm:p-6"
-                    : hasImage
-                    ? "p-4 sm:p-5"
-                    : "p-4 sm:p-4.5"
-                }`}
-              >
-                <div>
-                  {/* Photo if available */}
-                  {hasImage && (
-                    <div
-                      className={`relative w-full rounded-2xl overflow-hidden mb-3.5 bg-[var(--input)] ${
-                        isFeatured ? "h-52 sm:h-64" : "h-36 sm:h-40"
-                      }`}
-                    >
-                      <img
-                        src={article.imageUrl}
-                        alt={article.title}
-                        className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300"
-                        loading="lazy"
-                      />
-                      <div className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/65 backdrop-blur-md text-[9px] font-bold text-white uppercase tracking-wider">
-                        {article.isOfficial ? "ESPN Official" : "Featured"}
-                      </div>
-                    </div>
-                  )}
+          {/* Tablet Layout: 2 Height-Balanced Masonry Columns */}
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-4 items-start">
+            {tabletColumns.map((col, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-4">
+                {col.map((article) => (
+                  <NewsCard key={article.id} article={article} />
+                ))}
+              </div>
+            ))}
+          </div>
 
-                  {/* Metadata Row */}
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        article.isOfficial
-                          ? "bg-team-tint text-team border border-team-tint"
-                          : "bg-[var(--input)] text-[var(--muted)] border border-[var(--border)]"
-                      }`}
-                    >
-                      {article.source}
-                    </span>
-
-                    <span className="flex items-center gap-1.5 text-[11px] text-[var(--muted)] font-mono">
-                      <Clock className="w-3 h-3 text-[var(--muted-light)]" />
-                      {article.relativeTime}
-                    </span>
-                  </div>
-
-                  {/* Headline */}
-                  <h4
-                    className={`font-editorial font-semibold text-[var(--foreground)] group-hover:text-team transition-colors leading-snug line-clamp-3 ${
-                      isFeatured ? "text-xl sm:text-2xl" : "text-sm sm:text-base"
-                    }`}
-                  >
-                    {article.title}
-                  </h4>
-
-                  {/* Description snippet */}
-                  {article.description && (
-                    <p
-                      className={`text-xs text-[var(--muted)] mt-1.5 line-clamp-2 leading-relaxed ${
-                        isFeatured ? "sm:line-clamp-3 text-sm" : ""
-                      }`}
-                    >
-                      {article.description}
-                    </p>
-                  )}
-                </div>
-
-                {/* Bottom Action */}
-                <div className="mt-3.5 pt-2.5 border-t border-[var(--border)] flex items-center justify-between text-xs text-[var(--muted)] group-hover:text-team transition-colors">
-                  <span className="text-[11px] font-semibold">Read Coverage</span>
-                  <span className="w-5.5 h-5.5 rounded-full bg-[var(--input)] flex items-center justify-center group-hover:bg-team group-hover:text-white transition-all shadow-2xs">
-                    <ArrowUpRight className="w-3 h-3" />
-                  </span>
-                </div>
-              </a>
-            );
-          })}
-        </div>
+          {/* Desktop Layout: 3 Height-Balanced Masonry Columns */}
+          <div className="hidden lg:grid grid-cols-3 gap-4 items-start">
+            {desktopColumns.map((col, colIdx) => (
+              <div key={colIdx} className="flex flex-col gap-4">
+                {col.map((article) => (
+                  <NewsCard key={article.id} article={article} />
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
