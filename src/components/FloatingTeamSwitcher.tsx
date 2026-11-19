@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { NFL_TEAMS } from "@/data/teams";
-import { Search, X, ChevronUp, Sparkles, Layers } from "lucide-react";
+import { Search, X, ChevronUp, Layers } from "lucide-react";
+import { SunburstIcon } from "@/components/icons/EditorialIcons";
 
 export default function FloatingTeamSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
@@ -158,7 +159,7 @@ export default function FloatingTeamSwitcher() {
           </>
         ) : (
           <>
-            <Sparkles className="w-4 h-4 text-amber-500" />
+            <SunburstIcon className="w-4 h-4 text-amber-500" />
             <span className="font-semibold text-xs text-[var(--foreground)]">
               Switch Team
             </span>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Compass } from "lucide-react";
+import { FanSunburstLogo } from "@/components/icons/EditorialIcons";
 
 export default function Navbar() {
   return (
@@ -12,7 +12,7 @@ export default function Navbar() {
           {/* Logo & Editorial Brand */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-8 h-8 rounded-full border border-[var(--border)] bg-[var(--card)] flex items-center justify-center shadow-xs group-hover:border-slate-400 transition-colors">
-              <Compass className="w-4 h-4 text-[var(--foreground)] group-hover:rotate-45 transition-transform duration-300" />
+              <FanSunburstLogo className="w-4 h-4 text-team group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div>
               <div className="flex items-baseline gap-1.5">

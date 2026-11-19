@@ -1,7 +1,13 @@
 import Link from "next/link";
 import TeamSelector from "@/components/TeamSelector";
 import { fetchLeagueStandings, fetchAllRemainingSchedules } from "@/lib/api";
-import { Calendar, Newspaper, TrendingUp, Compass, Shield } from "lucide-react";
+import {
+  SunburstIcon,
+  EditorialCalendar,
+  DivisionRankIcon,
+  EditorialPulse,
+  EditorialDispatch,
+} from "@/components/icons/EditorialIcons";
 
 export default async function HomePage() {
   const [standingsData, remainingSchedules] = await Promise.all([
@@ -30,7 +36,7 @@ export default async function HomePage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Subtle Tagline Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-xs font-semibold text-[var(--muted)] mb-6 shadow-2xs">
-            <Compass className="w-3.5 h-3.5 text-amber-500" />
+            <SunburstIcon className="w-3.5 h-3.5 text-amber-500" />
             <span>2026 NFL Season Intelligence & Remaining Slate Hub</span>
           </div>
 
@@ -66,7 +72,7 @@ export default async function HomePage() {
             <div className="calm-card p-5">
               <span className="font-editorial text-xs font-semibold text-[var(--muted)]">01</span>
               <div className="flex items-center gap-2 mt-1 mb-2">
-                <Calendar className="w-4 h-4 text-blue-500" />
+                <EditorialCalendar className="w-4 h-4 text-blue-500" />
                 <h2 className="font-editorial text-base font-semibold text-[var(--foreground)]">
                   Remaining Schedules
                 </h2>
@@ -79,7 +85,7 @@ export default async function HomePage() {
             <div className="calm-card p-5">
               <span className="font-editorial text-xs font-semibold text-[var(--muted)]">02</span>
               <div className="flex items-center gap-2 mt-1 mb-2">
-                <Shield className="w-4 h-4 text-amber-500" />
+                <DivisionRankIcon className="w-4 h-4 text-amber-500" />
                 <h2 className="font-editorial text-base font-semibold text-[var(--foreground)]">
                   Divisional Races
                 </h2>
@@ -92,7 +98,7 @@ export default async function HomePage() {
             <div className="calm-card p-5">
               <span className="font-editorial text-xs font-semibold text-[var(--muted)]">03</span>
               <div className="flex items-center gap-2 mt-1 mb-2">
-                <TrendingUp className="w-4 h-4 text-emerald-500" />
+                <EditorialPulse className="w-4 h-4 text-emerald-500" />
                 <h2 className="font-editorial text-base font-semibold text-[var(--foreground)]">
                   Game Win Probabilities
                 </h2>

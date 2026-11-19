@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import type { ScheduleGame } from "@/types";
-import { Calendar, Tv, TrendingUp, Clock } from "lucide-react";
+import { Tv, Clock } from "lucide-react";
+import { SunburstIcon } from "@/components/icons/EditorialIcons";
 
 interface ScheduleViewProps {
   games: ScheduleGame[];
@@ -46,7 +47,7 @@ export default function ScheduleView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-editorial text-xs font-semibold text-[var(--muted)]">01</span>
+            <SunburstIcon className="w-4 h-4 text-team" />
             <h3 className="font-editorial text-xl font-medium text-[var(--foreground)] tracking-tight">
               2026 Schedule & Win Probabilities
             </h3>

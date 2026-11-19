@@ -11,10 +11,10 @@ import {
   SlidersHorizontal,
   Trophy,
   Calendar,
-  Shield,
   LayoutGrid,
   Table as TableIcon,
 } from "lucide-react";
+import { SunburstIcon } from "@/components/icons/EditorialIcons";
 
 interface TeamSelectorProps {
   standingsMap?: Record<string, TeamDivisionStats>;
@@ -326,7 +326,7 @@ export default function TeamSelector({
             <div key={divGroup.name} className="calm-card p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-amber-500" />
+                  <SunburstIcon className="w-4 h-4 text-amber-500" />
                   <h3 className="font-editorial text-xl font-medium text-[var(--foreground)]">
                     {divGroup.name}
                   </h3>

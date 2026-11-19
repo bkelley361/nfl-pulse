@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from "react";
 import type { NewsArticle } from "@/types";
-import { Newspaper, ArrowUpRight, Search, Clock, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpRight, Search, Clock, SlidersHorizontal, X } from "lucide-react";
+import { SunburstIcon, EditorialDispatch } from "@/components/icons/EditorialIcons";
 
 interface NewsFeedProps {
   articles: NewsArticle[];
@@ -157,7 +158,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-editorial text-xs font-semibold text-[var(--muted)]">02</span>
+            <SunburstIcon className="w-4 h-4 text-team" />
             <h3 className="font-editorial text-xl font-medium text-[var(--foreground)] tracking-tight">
               {teamDisplayName} News Stream
             </h3>
@@ -252,7 +253,7 @@ export default function NewsFeed({ articles, teamDisplayName }: NewsFeedProps) {
       {/* Autofit Bento Masonry Columns (Zero blank space, smaller cards stack tightly underneath) */}
       {filteredArticles.length === 0 ? (
         <div className="calm-card p-12 text-center">
-          <Newspaper className="w-8 h-8 mx-auto text-[var(--muted-light)] mb-3" />
+          <EditorialDispatch className="w-8 h-8 mx-auto text-[var(--muted-light)] mb-3" />
           <h4 className="font-editorial text-lg font-medium text-[var(--foreground)]">
             No articles found
           </h4>

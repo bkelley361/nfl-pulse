@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import type { DivisionStandingsGroup } from "@/types";
-import { Shield, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { SunburstIcon } from "@/components/icons/EditorialIcons";
 
 interface DivisionStandingsProps {
   division: DivisionStandingsGroup;
@@ -22,7 +23,7 @@ export default function DivisionStandings({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-team" />
+            <SunburstIcon className="w-4 h-4 text-team" />
             <h3 className="font-editorial text-xl font-medium text-[var(--foreground)] tracking-tight">
               {division.name} Standings
             </h3>

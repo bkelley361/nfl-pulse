@@ -1,6 +1,7 @@
 import React from "react";
 import type { MatchupPredictorData, ScheduleGame } from "@/types";
-import { TrendingUp, Tv, MapPin, Calendar, Award, Shield } from "lucide-react";
+import { Tv, MapPin, Calendar } from "lucide-react";
+import { SunburstIcon } from "@/components/icons/EditorialIcons";
 
 interface MatchupPredictorProps {
   matchup: MatchupPredictorData | null;
@@ -114,7 +115,7 @@ export default function MatchupPredictor({
           {/* Center Win Probability Split Gauge */}
           <div className="md:col-span-4 flex flex-col items-center justify-center text-center px-2">
             <div className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-[10px] font-semibold text-[var(--muted)] mb-2">
-              <Award className="w-3 h-3 text-amber-500" />
+              <SunburstIcon className="w-3 h-3 text-amber-500" />
               <span>
                 {teamIsFavored ? team.name : opponent.name} Favored (+{favoredMargin}%)
               </span>

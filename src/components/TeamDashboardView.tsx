@@ -14,16 +14,14 @@ import MatchupPredictor from "@/components/MatchupPredictor";
 import ScheduleView from "@/components/ScheduleView";
 import NewsFeed from "@/components/NewsFeed";
 import DivisionStandings from "@/components/DivisionStandings";
+import { ArrowRight } from "lucide-react";
 import {
-  Calendar,
-  Newspaper,
-  TrendingUp,
-  Shield,
-  Award,
-  Flame,
-  ArrowRight,
-  Percent,
-} from "lucide-react";
+  SunburstIcon,
+  EditorialPulse,
+  EditorialCalendar,
+  DivisionRankIcon,
+  EditorialDispatch,
+} from "@/components/icons/EditorialIcons";
 
 interface TeamDashboardViewProps {
   team: NFLTeam;
@@ -120,7 +118,7 @@ export default function TeamDashboardView({
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            <TrendingUp className="w-3.5 h-3.5" />
+            <EditorialPulse className="w-3.5 h-3.5 text-team" />
             <span>Overview & Matchup</span>
           </button>
 
@@ -132,7 +130,7 @@ export default function TeamDashboardView({
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
+            <EditorialCalendar className="w-3.5 h-3.5" />
             <span>Schedule & Win Probabilities</span>
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
               {scheduleData.games.length}
@@ -145,10 +143,10 @@ export default function TeamDashboardView({
               className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
                 activeTab === "standings"
                   ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
               }`}
             >
-              <Shield className="w-3.5 h-3.5" />
+              <DivisionRankIcon className="w-3.5 h-3.5" />
               <span>Division Standings</span>
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
                 Rank #{teamStats?.rank || 1}
@@ -164,7 +162,7 @@ export default function TeamDashboardView({
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            <Newspaper className="w-3.5 h-3.5" />
+            <EditorialDispatch className="w-3.5 h-3.5" />
             <span>Latest News</span>
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
               {newsArticles.length}
