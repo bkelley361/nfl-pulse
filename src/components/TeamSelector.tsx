@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { NFL_TEAMS, type NFLTeam } from "@/data/teams";
+import { getReadableDarkColor, hexToRgb } from "@/lib/colors";
 import type { TeamDivisionStats, ScheduleGame, DivisionStandingsGroup } from "@/types";
 import {
   Search,
@@ -196,6 +197,9 @@ export default function TeamSelector({
                 const remaining = remainingSchedules[team.id] || [];
                 const rankText = stats ? `#${stats.rank} in ${team.division}` : `${team.division}`;
 
+                const readableColor = getReadableDarkColor(team.color);
+                const readableRgb = hexToRgb(readableColor);
+
                 return (
                   <Link
                     key={team.id}
@@ -204,6 +208,8 @@ export default function TeamSelector({
                     style={
                       {
                         "--team-primary": team.color,
+                        "--team-primary-readable": readableColor,
+                        "--team-primary-readable-rgb": `${readableRgb.r}, ${readableRgb.g}, ${readableRgb.b}`,
                       } as React.CSSProperties
                     }
                   >

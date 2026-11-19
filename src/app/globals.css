@@ -13,6 +13,8 @@
   --input: #f3efe6;
   --team-primary: #1e3a8a;
   --team-primary-rgb: 30, 58, 138;
+  --team-primary-readable: #1e3a8a;
+  --team-primary-readable-rgb: 30, 58, 138;
   --team-secondary: #f59e0b;
   --team-secondary-rgb: 245, 158, 11;
   --team-contrast: #ffffff;
@@ -29,6 +31,8 @@
   --border: #232730;
   --border-subtle: #1c2028;
   --input: #121419;
+  --team-primary-readable: #60a5fa;
+  --team-primary-readable-rgb: 96, 165, 250;
 }
 
 @theme inline {
@@ -60,7 +64,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-/* Soft Tactile Cards inspired by Calm / System & Minimalist Dashboard */
+/* Soft Tactile Cards */
 .calm-card {
   background-color: var(--card);
   border: 1px solid var(--border);
@@ -74,7 +78,7 @@ body {
 }
 
 .calm-card:hover {
-  border-color: rgba(var(--team-primary-rgb), 0.35);
+  border-color: rgba(var(--team-primary-readable-rgb, var(--team-primary-rgb)), 0.4);
 }
 
 /* Tactile Pill Elements */
@@ -94,11 +98,11 @@ body {
 
 .calm-input:focus {
   outline: none;
-  border-color: var(--team-primary);
-  box-shadow: 0 0 0 3px rgba(var(--team-primary-rgb), 0.15);
+  border-color: var(--team-primary-readable, var(--team-primary));
+  box-shadow: 0 0 0 3px rgba(var(--team-primary-readable-rgb, var(--team-primary-rgb)), 0.2);
 }
 
-/* Dynamic Team Helper Classes */
+/* Dynamic Team Helper Classes with guaranteed Dark Mode visibility */
 .bg-team {
   background-color: var(--team-primary);
   color: var(--team-contrast);
@@ -112,12 +116,24 @@ body {
   color: var(--team-primary);
 }
 
+.dark .text-team {
+  color: var(--team-primary-readable, var(--team-primary));
+}
+
 .bg-team-tint {
   background-color: rgba(var(--team-primary-rgb), 0.08);
 }
 
+.dark .bg-team-tint {
+  background-color: rgba(var(--team-primary-readable-rgb, var(--team-primary-rgb)), 0.18);
+}
+
 .border-team-tint {
-  border-color: rgba(var(--team-primary-rgb), 0.22);
+  border-color: rgba(var(--team-primary-rgb), 0.25);
+}
+
+.dark .border-team-tint {
+  border-color: rgba(var(--team-primary-readable-rgb, var(--team-primary-rgb)), 0.4);
 }
 
 /* Custom delicate scrollbars */

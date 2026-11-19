@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Plus_Jakarta_Sans } from "next/font/google";
 import Navbar from "@/components/Navbar";
+import FloatingTeamSwitcher from "@/components/FloatingTeamSwitcher";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
@@ -58,6 +59,7 @@ export default function RootLayout({
         <ThemeProvider>
           <Navbar />
           <main className="flex-1">{children}</main>
+          <FloatingTeamSwitcher />
           <footer className="border-t border-[var(--border)] bg-[var(--background)] py-10 text-xs transition-colors">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">

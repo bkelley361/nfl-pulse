@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { ScheduleGame } from "@/types";
-import { Calendar, Tv, TrendingUp, Award, Percent } from "lucide-react";
+import { Calendar, Tv, TrendingUp, Clock } from "lucide-react";
 
 interface ScheduleViewProps {
   games: ScheduleGame[];
@@ -17,7 +17,7 @@ export default function ScheduleView({
   teamAbbr,
   teamColor,
 }: ScheduleViewProps) {
-  // Default to "UPCOMING" as requested by user
+  // Default to "UPCOMING"
   const [filter, setFilter] = useState<"ALL" | "UPCOMING" | "COMPLETED">("UPCOMING");
 
   const filteredGames = useMemo(() => {
@@ -28,6 +28,17 @@ export default function ScheduleView({
 
   const completedCount = games.filter((g) => g.completed).length;
   const upcomingCount = games.filter((g) => !g.completed).length;
+
+  const formatGameTime = (game: ScheduleGame) => {
+    if (game.statusDetail && game.statusDetail.includes(" - ")) {
+      return game.statusDetail.split(" - ")[1];
+    }
+    const d = new Date(game.date);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+    }
+    return "";
+  };
 
   return (
     <div className="space-y-6">
@@ -41,7 +52,7 @@ export default function ScheduleView({
             </h3>
           </div>
           <p className="text-xs text-[var(--muted)] mt-0.5">
-            Full 18-week slate featuring computer-modeled win probabilities for every matchup.
+            Full 18-week slate featuring date, kickoff time, and computer win probabilities for every matchup.
           </p>
         </div>
 
@@ -102,13 +113,19 @@ export default function ScheduleView({
             const isCompleted = game.completed;
             const isWin = game.isWin;
             const isTie = game.isTie;
-            const weekNumberStr = String(game.weekNumber || index + 1).padStart(2, "0");
+            const weekNumberStr = `Week ${game.weekNumber || index + 1}`;
+            const gameTimeStr = formatGameTime(game);
             const prob = game.winProbability ?? 50;
+
+            const d = new Date(game.date);
+            const dateStr = !isNaN(d.getTime())
+              ? d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+              : game.shortDate;
 
             return (
               <div
                 key={game.id}
-                className={`p-4 rounded-2xl border transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                className={`p-4 sm:p-4.5 rounded-2xl border transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
                   game.isLive
                     ? "bg-[var(--card)] border-red-500/50 shadow-md"
                     : isCompleted
@@ -116,21 +133,32 @@ export default function ScheduleView({
                     : "bg-[var(--card)] border-[var(--border)] hover:border-slate-400 dark:hover:border-slate-600 shadow-2xs"
                 }`}
               >
-                {/* Left: Week Prefix & Opponent Details */}
+                {/* Left Side: Week Number + Date & Kickoff Time on the Side */}
                 <div className="flex items-center gap-4 min-w-0">
-                  {/* Numbered Week Prefix */}
-                  <div className="w-12 flex-shrink-0 text-left">
-                    <span className="font-editorial text-sm font-semibold text-[var(--muted)] block">
+                  {/* Side Box: Week Number, Date, and Kickoff Time */}
+                  <div className="w-36 sm:w-40 flex-shrink-0 text-left pr-2">
+                    <span className="font-editorial text-sm font-bold text-[var(--foreground)] block">
                       {weekNumberStr}
                     </span>
-                    <span className="text-[10px] text-[var(--muted-light)] font-mono block">
-                      {game.shortDate.split(",")[0]}
+                    <span className="text-xs font-semibold text-[var(--foreground)] mt-0.5 block truncate">
+                      {dateStr}
                     </span>
+                    {gameTimeStr && !isCompleted && !game.isLive && (
+                      <span className="text-[11px] font-mono font-medium text-team mt-0.5 block flex items-center gap-1 truncate">
+                        <Clock className="w-3 h-3 text-[var(--muted)] flex-shrink-0" />
+                        {gameTimeStr}
+                      </span>
+                    )}
+                    {isCompleted && (
+                      <span className="text-[10px] uppercase font-bold text-[var(--muted)] mt-0.5 block">
+                        Final
+                      </span>
+                    )}
                   </div>
 
-                  <div className="w-px h-8 bg-[var(--border)] flex-shrink-0" />
+                  <div className="w-px h-10 bg-[var(--border)] flex-shrink-0" />
 
-                  {/* Opponent Logo & Details */}
+                  {/* Opponent Logo & Matchup Info */}
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-[var(--input)] p-1.5 flex items-center justify-center flex-shrink-0 border border-[var(--border)] shadow-xs">
                       <img
@@ -171,9 +199,9 @@ export default function ScheduleView({
                   </div>
                 </div>
 
-                {/* Right: Win Probability & Status / Scores */}
+                {/* Right Side: Win Probability / Scores */}
                 <div className="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
-                  {/* Win Probability Bar for every game */}
+                  {/* Win Probability Bar for every upcoming matchup */}
                   {!isCompleted && !game.isLive && (
                     <div className="flex items-center gap-3 pr-2">
                       <div className="text-right">
@@ -230,16 +258,7 @@ export default function ScheduleView({
                         {isWin ? "Win" : isTie ? "Tie" : "Loss"}
                       </span>
                     </div>
-                  ) : (
-                    <div className="text-left md:text-right min-w-[120px]">
-                      <div className="text-xs font-semibold text-[var(--foreground)]">
-                        {game.statusDetail}
-                      </div>
-                      <div className="text-[10px] text-[var(--muted)]">
-                        {game.shortDate}
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             );

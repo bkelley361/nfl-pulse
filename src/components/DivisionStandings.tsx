@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { DivisionStandingsGroup } from "@/types";
-import { Shield, Trophy, TrendingUp, Award } from "lucide-react";
+import { Shield } from "lucide-react";
 
 interface DivisionStandingsProps {
   division: DivisionStandingsGroup;
@@ -37,22 +37,19 @@ export default function DivisionStandings({
         </span>
       </div>
 
-      {/* Standings Table */}
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xs">
-        <table className="w-full text-left text-xs">
+      {/* Standings Table - Fits in one card with NO desktop scroll */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xs overflow-x-auto sm:overflow-x-visible">
+        <table className="w-full text-left text-xs table-auto sm:table-fixed">
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--input)]/60 text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-              <th className="py-3 px-4">Rank</th>
-              <th className="py-3 px-4">Franchise</th>
-              <th className="py-3 px-3 text-center">W-L-T</th>
-              <th className="py-3 px-3 text-center">Win%</th>
-              <th className="py-3 px-3 text-center">GB</th>
-              <th className="py-3 px-3 text-center">Div</th>
-              <th className="py-3 px-3 text-center">Conf</th>
-              <th className="py-3 px-3 text-center">PF</th>
-              <th className="py-3 px-3 text-center">PA</th>
-              <th className="py-3 px-3 text-center">Diff</th>
-              <th className="py-3 px-4 text-center">Streak</th>
+              <th className="py-3 px-3 sm:w-12 text-center">#</th>
+              <th className="py-3 px-3 sm:w-56">Franchise</th>
+              <th className="py-3 px-2 sm:w-20 text-center">W-L</th>
+              <th className="py-3 px-2 sm:w-16 text-center">Win%</th>
+              <th className="py-3 px-2 sm:w-14 text-center">GB</th>
+              <th className="py-3 px-2 sm:w-16 text-center">Div</th>
+              <th className="py-3 px-2 sm:w-16 text-center">Diff</th>
+              <th className="py-3 px-3 sm:w-20 text-center">Streak</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border)]">
@@ -70,7 +67,7 @@ export default function DivisionStandings({
                   }`}
                 >
                   {/* Rank */}
-                  <td className="py-3.5 px-4">
+                  <td className="py-3 px-3 text-center">
                     <span
                       className={`w-6 h-6 rounded-full inline-flex items-center justify-center font-editorial font-bold text-xs ${
                         t.rank === 1
@@ -83,71 +80,53 @@ export default function DivisionStandings({
                   </td>
 
                   {/* Team */}
-                  <td className="py-3.5 px-4">
+                  <td className="py-3 px-3">
                     <Link
                       href={`/team/${t.slug}`}
-                      className="inline-flex items-center gap-3 group"
+                      className="inline-flex items-center gap-2.5 group truncate max-w-full"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-[var(--input)] p-1 flex items-center justify-center flex-shrink-0 border border-[var(--border)] group-hover:scale-105 transition-transform">
+                      <div className="w-7 h-7 rounded-lg bg-[var(--input)] p-1 flex items-center justify-center flex-shrink-0 border border-[var(--border)] group-hover:scale-105 transition-transform">
                         <img
                           src={t.logo}
                           alt={t.displayName}
-                          className="w-5.5 h-5.5 object-contain"
+                          className="w-5 h-5 object-contain"
                         />
                       </div>
-                      <div>
-                        <div className="font-semibold text-[var(--foreground)] group-hover:text-team transition-colors flex items-center gap-1.5">
-                          <span>{t.displayName}</span>
+                      <div className="truncate">
+                        <div className="font-semibold text-[var(--foreground)] group-hover:text-team transition-colors flex items-center gap-1.5 truncate">
+                          <span className="truncate">{t.displayName}</span>
                           {t.seed && (
-                            <span className="text-[9px] font-mono px-1 rounded bg-[var(--input)] border border-[var(--border)] text-[var(--muted)]">
+                            <span className="text-[9px] font-mono px-1 rounded bg-[var(--input)] border border-[var(--border)] text-[var(--muted)] flex-shrink-0">
                               #{t.seed}
                             </span>
                           )}
-                        </div>
-                        <div className="text-[10px] text-[var(--muted)] font-mono">
-                          {t.abbreviation}
                         </div>
                       </div>
                     </Link>
                   </td>
 
-                  {/* W-L-T */}
-                  <td className="py-3.5 px-3 text-center font-editorial text-sm font-bold text-[var(--foreground)]">
+                  {/* W-L */}
+                  <td className="py-3 px-2 text-center font-editorial text-sm font-bold text-[var(--foreground)]">
                     {t.wins}-{t.losses}{t.ties > 0 ? `-${t.ties}` : ""}
                   </td>
 
                   {/* Win% */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
                     {t.winPct.toFixed(3).replace("0.", ".")}
                   </td>
 
                   {/* GB */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
                     {t.gamesBehind}
                   </td>
 
                   {/* Div */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
+                  <td className="py-3 px-2 text-center font-mono text-xs text-[var(--muted)]">
                     {t.divRecord}
                   </td>
 
-                  {/* Conf */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
-                    {t.confRecord}
-                  </td>
-
-                  {/* PF */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
-                    {t.pointsFor}
-                  </td>
-
-                  {/* PA */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs text-[var(--muted)]">
-                    {t.pointsAgainst}
-                  </td>
-
                   {/* Differential */}
-                  <td className="py-3.5 px-3 text-center font-mono text-xs font-semibold">
+                  <td className="py-3 px-2 text-center font-mono text-xs font-semibold">
                     <span
                       className={
                         isDiffPositive
@@ -162,7 +141,7 @@ export default function DivisionStandings({
                   </td>
 
                   {/* Streak */}
-                  <td className="py-3.5 px-4 text-center">
+                  <td className="py-3 px-3 text-center">
                     <span
                       className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         t.streak.startsWith("W")
