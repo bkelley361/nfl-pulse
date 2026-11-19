@@ -48,6 +48,8 @@ export interface ScheduleGame {
   opponentScore?: number;
   isWin?: boolean;
   isTie?: boolean;
+  winProbability?: number; // Projected win probability %
+  projectedSpread?: string;
 }
 
 export interface TeamRecordData {
@@ -56,6 +58,46 @@ export interface TeamRecordData {
   homeRecord?: string;
   awayRecord?: string;
   divisionRecord?: string;
+}
+
+export interface TeamScheduleResult {
+  record: TeamRecordData;
+  games: ScheduleGame[];
+  nextGameId: string | null;
+}
+
+export interface TeamDivisionStats {
+  teamId: string;
+  displayName: string;
+  shortDisplayName: string;
+  abbreviation: string;
+  logo: string;
+  color: string;
+  slug: string;
+  rank: number;
+  conference: "AFC" | "NFC";
+  division: "East" | "North" | "South" | "West";
+  wins: number;
+  losses: number;
+  ties: number;
+  winPct: number;
+  streak: string;
+  pointsFor: number;
+  pointsAgainst: number;
+  differential: string;
+  divRecord: string;
+  confRecord: string;
+  homeRecord: string;
+  roadRecord: string;
+  gamesBehind: string;
+  seed?: string;
+}
+
+export interface DivisionStandingsGroup {
+  name: string; // e.g. "NFC North"
+  conference: "AFC" | "NFC";
+  division: string;
+  teams: TeamDivisionStats[];
 }
 
 export interface MatchupPredictorData {
@@ -88,7 +130,7 @@ export interface MatchupPredictorData {
     logo: string;
     color: string;
     record: string;
-    winProjection?: number; // ESPN FPI %
+    winProjection?: number;
     moneyline?: number;
     impliedWinPct?: number;
     spread?: string;

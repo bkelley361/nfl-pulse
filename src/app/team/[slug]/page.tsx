@@ -1,12 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { NFL_TEAMS, getTeamBySlug } from "@/data/teams";
-import { fetchTeamSchedule, fetchGameMatchup, fetchTeamNews } from "@/lib/api";
+import {
+  fetchTeamSchedule,
+  fetchGameMatchup,
+  fetchTeamNews,
+  fetchLeagueStandings,
+} from "@/lib/api";
 import { getTeamStyleVariables } from "@/lib/colors";
-import MatchupPredictor from "@/components/MatchupPredictor";
-import ScheduleView from "@/components/ScheduleView";
-import NewsFeed from "@/components/NewsFeed";
-import { ArrowLeft, ExternalLink, ShieldCheck } from "lucide-react";
+import TeamDashboardView from "@/components/TeamDashboardView";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -24,7 +27,7 @@ export async function generateMetadata({ params }: PageProps) {
   if (!team) return { title: "Team Not Found" };
   return {
     title: `${team.displayName} — 2026 Pulse | Schedule, Win Probabilities & News`,
-    description: `Track the ${team.displayName} 2026 NFL schedule, computer matchup win probabilities, Vegas odds, and real-time aggregated beat reporting.`,
+    description: `Track the ${team.displayName} 2026 NFL schedule, computer matchup win probabilities, Vegas odds, division rankings, and real-time aggregated beat reporting.`,
   };
 }
 
@@ -36,29 +39,33 @@ export default async function TeamPage({ params }: PageProps) {
     notFound();
   }
 
-  // Generate dynamic CSS variables so this selected team's color becomes the main color palette
+  // Dynamic CSS variables so selected team's color is the main palette
   const teamStyles = getTeamStyleVariables(team.color, team.alternateColor);
 
-  // Parallel fetch schedule and news
-  const [scheduleData, newsArticles] = await Promise.all([
+  // Parallel fetch schedule, news, and league standings
+  const [scheduleData, newsArticles, standingsData] = await Promise.all([
     fetchTeamSchedule(team.id),
     fetchTeamNews(team),
+    fetchLeagueStandings(),
   ]);
 
-  // Fetch matchup predictor data for next game if scheduled
+  // Next game matchup spotlight
   let matchupData = null;
-  const nextGame = scheduleData.games.find((g) => !g.completed);
-
   if (scheduleData.nextGameId) {
     matchupData = await fetchGameMatchup(scheduleData.nextGameId, team.id);
   }
+
+  const teamStats = standingsData.standingsMap[team.id];
+  const division = standingsData.divisions.find(
+    (d) => d.conference === team.conference && d.division === team.division
+  );
 
   return (
     <div
       className="min-h-screen pb-20 transition-colors duration-200"
       style={teamStyles}
     >
-      {/* Team Profile Banner with Calm Editorial Aesthetic */}
+      {/* Team Header Banner with Calm Editorial Aesthetic */}
       <div className="relative border-b border-[var(--border)] bg-[var(--card)]/40 overflow-hidden">
         {/* Ambient atmospheric aura from the team's official color */}
         <div
@@ -67,7 +74,7 @@ export default async function TeamPage({ params }: PageProps) {
         />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-9">
-          {/* Back Pill Button (Image 4 Component 03: <- Back) */}
+          {/* Back Pill Button */}
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] hover:border-slate-400 dark:hover:border-slate-600 transition-all mb-6 group cursor-pointer shadow-2xs"
@@ -110,9 +117,14 @@ export default async function TeamPage({ params }: PageProps) {
                   <span className="px-3 py-1 rounded-full bg-team-tint text-team border border-team-tint font-bold">
                     2026 Record: {scheduleData.record.summary}
                   </span>
-                  {scheduleData.record.standing && (
+                  {teamStats && (
+                    <span className="px-3 py-1 rounded-full bg-[var(--input)] border border-[var(--border)] text-[var(--foreground)] font-semibold">
+                      Rank #{teamStats.rank} in {team.conference} {team.division}
+                    </span>
+                  )}
+                  {teamStats && (
                     <span className="text-[var(--muted)] font-medium">
-                      {scheduleData.record.standing}
+                      Streak: <strong className="text-[var(--foreground)]">{teamStats.streak}</strong> • Diff: <strong className="text-[var(--foreground)]">{teamStats.differential}</strong>
                     </span>
                   )}
                 </div>
@@ -136,44 +148,15 @@ export default async function TeamPage({ params }: PageProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10 space-y-10">
-        {/* Featured Section: Matchup & Win Probability */}
-        <section>
-          <div className="mb-4">
-            <h2 className="font-editorial text-2xl font-medium text-[var(--foreground)] tracking-tight">
-              Upcoming Matchup & Win Probability
-            </h2>
-            <p className="text-xs text-[var(--muted)] mt-0.5">
-              Computer model projection, wave probability surface, and sports betting lines.
-            </p>
-          </div>
-          <MatchupPredictor
-            matchup={matchupData}
-            nextGame={nextGame}
-            teamColor={team.color}
-          />
-        </section>
-
-        {/* Two-Column Grid: Schedule (7 cols) and News Stream (5 cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Schedule & Results */}
-          <section className="lg:col-span-7 calm-card p-6 sm:p-7">
-            <ScheduleView
-              games={scheduleData.games}
-              teamDisplayName={team.displayName}
-              teamAbbr={team.abbreviation}
-              teamColor={team.color}
-            />
-          </section>
-
-          {/* Right Column: Aggregated News */}
-          <section className="lg:col-span-5 calm-card p-6 sm:p-7">
-            <NewsFeed
-              articles={newsArticles}
-              teamDisplayName={team.shortDisplayName || team.name}
-            />
-          </section>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
+        <TeamDashboardView
+          team={team}
+          scheduleData={scheduleData}
+          matchupData={matchupData}
+          newsArticles={newsArticles}
+          division={division}
+          teamStats={teamStats}
+        />
       </div>
     </div>
   );

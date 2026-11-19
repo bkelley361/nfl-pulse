@@ -6,6 +6,8 @@ import type {
   TeamRecordData,
   MatchupPredictorData,
   NewsArticle,
+  TeamDivisionStats,
+  DivisionStandingsGroup,
 } from "@/types";
 
 export function timeAgo(dateString: string): string {
@@ -44,31 +46,177 @@ export function calculateImpliedProb(
   };
 }
 
+export function calculateWinProbability(
+  teamWinPct: number,
+  teamDiffPerGame: number,
+  oppWinPct: number,
+  oppDiffPerGame: number,
+  isHome: boolean
+): number {
+  const teamRating = 1500 + (teamWinPct - 0.5) * 380 + teamDiffPerGame * 12;
+  const oppRating = 1500 + (oppWinPct - 0.5) * 380 + oppDiffPerGame * 12;
+  const hfa = isHome ? 48 : -48;
+  const delta = teamRating - oppRating + hfa;
+  const prob = 1 / (1 + Math.pow(10, -delta / 400));
+  return Math.round(Math.max(0.08, Math.min(0.92, prob)) * 1000) / 10;
+}
+
 export interface TeamScheduleResult {
   record: TeamRecordData;
   games: ScheduleGame[];
   nextGameId: string | null;
 }
 
+// 1. Fetch League Standings
+export async function fetchLeagueStandings(): Promise<{
+  standingsMap: Record<string, TeamDivisionStats>;
+  divisions: DivisionStandingsGroup[];
+}> {
+  try {
+    const res = await fetch(
+      "https://site.api.espn.com/apis/v2/sports/football/nfl/standings",
+      { next: { revalidate: 600 } }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Standings error: ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    const rawEntries: Record<string, any> = {};
+
+    (data.children || []).forEach((conf: any) => {
+      (conf.standings?.entries || []).forEach((entry: any) => {
+        const stats: Record<string, string> = {};
+        (entry.stats || []).forEach((s: any) => {
+          stats[s.name || s.type] = s.displayValue;
+        });
+        rawEntries[entry.team.id] = { entry, stats };
+      });
+    });
+
+    // Group all 32 teams by conference and division
+    const divGroups: Record<string, TeamDivisionStats[]> = {};
+
+    NFL_TEAMS.forEach((team) => {
+      const key = `${team.conference} ${team.division}`;
+      if (!divGroups[key]) divGroups[key] = [];
+
+      const raw = rawEntries[team.id];
+      const stats = raw?.stats || {};
+
+      const wins = parseInt(stats["wins"] || "0");
+      const losses = parseInt(stats["losses"] || "0");
+      const ties = parseInt(stats["ties"] || "0");
+      const winPct = parseFloat(stats["winPercent"] || "0");
+      const diffStr = stats["differential"] || "0";
+      const pf = parseInt(stats["pointsFor"] || "0");
+      const pa = parseInt(stats["pointsAgainst"] || "0");
+
+      divGroups[key].push({
+        teamId: team.id,
+        displayName: team.displayName,
+        shortDisplayName: team.shortDisplayName,
+        abbreviation: team.abbreviation,
+        logo: team.logo,
+        color: team.color,
+        slug: team.slug,
+        rank: 1, // calculated below
+        conference: team.conference,
+        division: team.division,
+        wins,
+        losses,
+        ties,
+        winPct,
+        streak: stats["streak"] || "-",
+        pointsFor: pf,
+        pointsAgainst: pa,
+        differential: diffStr.startsWith("+") || diffStr.startsWith("-") ? diffStr : `+${diffStr}`,
+        divRecord: stats["divisionRecord"] || "0-0",
+        confRecord: stats["vs. Conf."] || "0-0",
+        homeRecord: stats["Home"] || "0-0",
+        roadRecord: stats["Road"] || "0-0",
+        gamesBehind: stats["gamesBehind"] || "-",
+        seed: stats["playoffSeed"],
+      });
+    });
+
+    const standingsMap: Record<string, TeamDivisionStats> = {};
+    const divisions: DivisionStandingsGroup[] = [];
+
+    // Sort each division by Win%, differential, etc.
+    const divisionOrder = [
+      "AFC East",
+      "AFC North",
+      "AFC South",
+      "AFC West",
+      "NFC East",
+      "NFC North",
+      "NFC South",
+      "NFC West",
+    ];
+
+    divisionOrder.forEach((divKey) => {
+      const group = divGroups[divKey] || [];
+      group.sort((a, b) => {
+        if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+        const diffA = parseInt(a.differential.replace("+", "")) || 0;
+        const diffB = parseInt(b.differential.replace("+", "")) || 0;
+        return diffB - diffA;
+      });
+
+      const parts = divKey.split(" ");
+      const conf = parts[0] as "AFC" | "NFC";
+      const div = parts[1];
+
+      group.forEach((t, idx) => {
+        t.rank = idx + 1;
+        standingsMap[t.teamId] = t;
+      });
+
+      divisions.push({
+        name: divKey,
+        conference: conf,
+        division: div,
+        teams: group,
+      });
+    });
+
+    return { standingsMap, divisions };
+  } catch (err) {
+    console.error("fetchLeagueStandings error:", err);
+    return { standingsMap: {}, divisions: [] };
+  }
+}
+
+// 2. Fetch Team Schedule (augmented with Win Probabilities for EVERY game)
 export async function fetchTeamSchedule(
   teamId: string
 ): Promise<TeamScheduleResult> {
   try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/schedule`,
-      { next: { revalidate: 300 } } // 5 minute cache
-    );
+    const [scheduleRes, standingsResult] = await Promise.all([
+      fetch(
+        `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${teamId}/schedule`,
+        { next: { revalidate: 300 } }
+      ),
+      fetchLeagueStandings(),
+    ]);
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch schedule: ${res.statusText}`);
+    if (!scheduleRes.ok) {
+      throw new Error(`Failed to fetch schedule: ${scheduleRes.statusText}`);
     }
 
-    const data = await res.json();
+    const data = await scheduleRes.json();
     const rawEvents = data.events || [];
+    const teamStats = standingsResult.standingsMap[teamId];
+
+    const teamGamesCount = Math.max(1, (teamStats?.wins || 0) + (teamStats?.losses || 0));
+    const teamDiffPerGame = (parseInt(teamStats?.differential?.replace("+", "") || "0")) / teamGamesCount;
+    const teamWinPct = teamStats?.winPct || 0.5;
 
     const record: TeamRecordData = {
-      summary: data.team?.recordSummary || "--",
-      standing: data.team?.standingSummary || "",
+      summary: data.team?.recordSummary || `${teamStats?.wins || 0}-${teamStats?.losses || 0}`,
+      standing: data.team?.standingSummary || `${teamStats?.rank || 1} in ${teamStats?.conference || "NFL"} ${teamStats?.division || ""}`,
     };
 
     let nextGameId: string | null = null;
@@ -105,6 +253,7 @@ export async function fetchTeamSchedule(
 
       const oppTeam = opponentComp?.team || {};
       const localOppTeam = getTeamById(oppTeam.id);
+      const oppStats = standingsResult.standingsMap[oppTeam.id];
 
       const d = new Date(e.date);
       const shortDate = !isNaN(d.getTime())
@@ -116,6 +265,24 @@ export async function fetchTeamSchedule(
         b?.names?.[0] ||
         b?.media?.shortName ||
         (typeof b?.market === "string" ? b.market : typeof b?.market?.type === "string" ? b.market.type : "");
+
+      // Calculate win probability for this game
+      let winProbability: number;
+      if (completed) {
+        winProbability = isWin ? 100 : isTie ? 50 : 0;
+      } else {
+        const oppGamesCount = Math.max(1, (oppStats?.wins || 0) + (oppStats?.losses || 0));
+        const oppDiffPerGame = (parseInt(oppStats?.differential?.replace("+", "") || "0")) / oppGamesCount;
+        const oppWinPct = oppStats?.winPct || 0.5;
+
+        winProbability = calculateWinProbability(
+          teamWinPct,
+          teamDiffPerGame,
+          oppWinPct,
+          oppDiffPerGame,
+          isHome
+        );
+      }
 
       return {
         id: e.id,
@@ -147,11 +314,13 @@ export async function fetchTeamSchedule(
             localOppTeam?.logo ||
             `https://a.espncdn.com/i/teamlogos/nfl/500/${(oppTeam.abbreviation || "nfl").toLowerCase()}.png`,
           color: localOppTeam?.color || "#4b5563",
+          record: oppStats ? `${oppStats.wins}-${oppStats.losses}` : undefined,
         },
         teamScore,
         opponentScore,
         isWin,
         isTie,
+        winProbability,
       };
     });
 
@@ -170,6 +339,7 @@ export async function fetchTeamSchedule(
   }
 }
 
+// 3. Fetch Next Matchup Spotlight with FPI & Odds
 export async function fetchGameMatchup(
   gameId: string,
   currentTeamId: string
@@ -216,9 +386,6 @@ export async function fetchGameMatchup(
 
     const homeOdds = pick?.homeTeamOdds?.moneyLine ?? pick?.homeMoneyLine;
     const awayOdds = pick?.awayTeamOdds?.moneyLine ?? pick?.awayMoneyLine;
-
-    const homeSpread = pick?.homeTeamOdds?.spreadOdds;
-    const awaySpread = pick?.awayTeamOdds?.spreadOdds;
 
     const teamMoneyline = isHome ? homeOdds : awayOdds;
     const oppMoneyline = isHome ? awayOdds : homeOdds;
@@ -301,6 +468,85 @@ export async function fetchGameMatchup(
   }
 }
 
+// 4. Fetch All Remaining Schedules for 32 Teams (Used for Front Page)
+export async function fetchAllRemainingSchedules(): Promise<Record<string, ScheduleGame[]>> {
+  try {
+    const schedulesMap: Record<string, ScheduleGame[]> = {};
+
+    await Promise.all(
+      NFL_TEAMS.map(async (team) => {
+        try {
+          const res = await fetch(
+            `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.id}/schedule`,
+            { next: { revalidate: 600 } }
+          );
+          if (!res.ok) return;
+          const data = await res.json();
+          const rawEvents = data.events || [];
+
+          const remaining = rawEvents
+            .filter((e: any) => !e.competitions?.[0]?.status?.type?.completed)
+            .map((e: any) => {
+              const comp = e.competitions?.[0] || {};
+              const competitors = comp.competitors || [];
+              const currentTeamComp = competitors.find((c: any) => c.id === team.id);
+              const opponentComp = competitors.find((c: any) => c.id !== team.id) || competitors[0];
+              const isHome = currentTeamComp?.homeAway === "home";
+              const oppTeam = opponentComp?.team || {};
+              const localOpp = getTeamById(oppTeam.id);
+
+              const d = new Date(e.date);
+              const shortDate = !isNaN(d.getTime())
+                ? d.toLocaleDateString("en-US", { weekday: "short", month: "numeric", day: "numeric" })
+                : e.date;
+
+              return {
+                id: e.id,
+                week: e.week?.text || `W${e.week?.number || ""}`,
+                weekNumber: e.week?.number ?? 0,
+                seasonType: 2,
+                date: e.date,
+                shortDate,
+                name: e.name || "",
+                shortName: e.shortName || "",
+                isHome,
+                completed: false,
+                isLive: false,
+                state: "pre" as const,
+                statusDetail: comp.status?.type?.shortDetail || "Scheduled",
+                venue: {
+                  fullName: comp.venue?.fullName || "Stadium",
+                  city: comp.venue?.address?.city || "",
+                },
+                opponent: {
+                  id: oppTeam.id || "0",
+                  name: oppTeam.name || oppTeam.displayName || "TBD",
+                  displayName: oppTeam.displayName || "TBD",
+                  abbreviation: oppTeam.abbreviation || "OPP",
+                  logo:
+                    oppTeam.logos?.[0]?.href ||
+                    localOpp?.logo ||
+                    `https://a.espncdn.com/i/teamlogos/nfl/500/${(oppTeam.abbreviation || "nfl").toLowerCase()}.png`,
+                  color: localOpp?.color || "#4b5563",
+                },
+              };
+            });
+
+          schedulesMap[team.id] = remaining;
+        } catch {
+          schedulesMap[team.id] = [];
+        }
+      })
+    );
+
+    return schedulesMap;
+  } catch (err) {
+    console.error("fetchAllRemainingSchedules error:", err);
+    return {};
+  }
+}
+
+// 5. Fetch Team News (ESPN + Google News RSS)
 export async function fetchTeamNews(team: NFLTeam): Promise<NewsArticle[]> {
   const articles: NewsArticle[] = [];
   const seenTitles = new Set<string>();
@@ -309,7 +555,7 @@ export async function fetchTeamNews(team: NFLTeam): Promise<NewsArticle[]> {
   try {
     const espnRes = await fetch(
       "https://site.api.espn.com/apis/site/v2/sports/football/nfl/news?limit=50",
-      { next: { revalidate: 600 } } // 10 minutes cache
+      { next: { revalidate: 600 } }
     );
 
     if (espnRes.ok) {
@@ -413,7 +659,6 @@ export async function fetchTeamNews(team: NFLTeam): Promise<NewsArticle[]> {
     console.warn("Google News RSS warning:", e);
   }
 
-  // Sort descending by date
   return articles.sort((a, b) => {
     const timeA = new Date(a.published).getTime() || 0;
     const timeB = new Date(b.published).getTime() || 0;

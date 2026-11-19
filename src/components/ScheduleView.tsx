@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import type { ScheduleGame } from "@/types";
-import { Calendar, Tv, Clock } from "lucide-react";
+import { Calendar, Tv, TrendingUp, Award, Percent } from "lucide-react";
 
 interface ScheduleViewProps {
   games: ScheduleGame[];
@@ -17,7 +17,8 @@ export default function ScheduleView({
   teamAbbr,
   teamColor,
 }: ScheduleViewProps) {
-  const [filter, setFilter] = useState<"ALL" | "UPCOMING" | "COMPLETED">("ALL");
+  // Default to "UPCOMING" as requested by user
+  const [filter, setFilter] = useState<"ALL" | "UPCOMING" | "COMPLETED">("UPCOMING");
 
   const filteredGames = useMemo(() => {
     if (filter === "UPCOMING") return games.filter((g) => !g.completed);
@@ -29,73 +30,85 @@ export default function ScheduleView({
   const upcomingCount = games.filter((g) => !g.completed).length;
 
   return (
-    <div className="space-y-5">
-      {/* Header & Segmented Pill Tabs (Image 4 Component 07) */}
+    <div className="space-y-6">
+      {/* Header & Fixed Pill Tabs (Amounts stay strictly inline, never underneath) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div>
           <div className="flex items-center gap-2">
             <span className="font-editorial text-xs font-semibold text-[var(--muted)]">01</span>
             <h3 className="font-editorial text-xl font-medium text-[var(--foreground)] tracking-tight">
-              2026 Schedule & Results
+              2026 Schedule & Win Probabilities
             </h3>
           </div>
           <p className="text-xs text-[var(--muted)] mt-0.5">
-            18-week regular season slate with final scores and kickoff details.
+            Full 18-week slate featuring computer-modeled win probabilities for every matchup.
           </p>
         </div>
 
-        {/* Soft Segmented Control Pill Container (Image 4) */}
-        <div className="inline-flex rounded-full bg-[var(--input)] p-1 border border-[var(--border)] self-start sm:self-auto shadow-inner">
-          <button
-            onClick={() => setFilter("ALL")}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
-              filter === "ALL"
-                ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
-                : "text-[var(--muted)] hover:text-[var(--foreground)]"
-            }`}
-          >
-            All ({games.length})
-          </button>
+        {/* Tactile Segmented Control Pill Container (Strictly inline numbers) */}
+        <div className="inline-flex items-center rounded-full bg-[var(--input)] p-1 border border-[var(--border)] self-start sm:self-auto shadow-inner">
           <button
             onClick={() => setFilter("UPCOMING")}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
               filter === "UPCOMING"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            Upcoming ({upcomingCount})
+            <span>Upcoming</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+              {upcomingCount}
+            </span>
           </button>
+
           <button
             onClick={() => setFilter("COMPLETED")}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+            className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
               filter === "COMPLETED"
                 ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
                 : "text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            Results ({completedCount})
+            <span>Results</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+              {completedCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setFilter("ALL")}
+            className={`whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer ${
+              filter === "ALL"
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-xs"
+                : "text-[var(--muted)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            <span>All</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[var(--input)] border border-[var(--border)] font-normal text-[var(--muted)]">
+              {games.length}
+            </span>
           </button>
         </div>
       </div>
 
-      {/* Games List with Calm Editorial Cards */}
+      {/* Games List */}
       {filteredGames.length === 0 ? (
         <div className="p-8 text-center rounded-2xl bg-[var(--input)]/50 border border-[var(--border)] text-[var(--muted)] text-xs">
           No games found for this filter.
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {filteredGames.map((game, index) => {
             const isCompleted = game.completed;
             const isWin = game.isWin;
             const isTie = game.isTie;
             const weekNumberStr = String(game.weekNumber || index + 1).padStart(2, "0");
+            const prob = game.winProbability ?? 50;
 
             return (
               <div
                 key={game.id}
-                className={`p-3.5 sm:p-4 rounded-2xl border transition-all duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                className={`p-4 rounded-2xl border transition-all duration-150 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
                   game.isLive
                     ? "bg-[var(--card)] border-red-500/50 shadow-md"
                     : isCompleted
@@ -103,9 +116,9 @@ export default function ScheduleView({
                     : "bg-[var(--card)] border-[var(--border)] hover:border-slate-400 dark:hover:border-slate-600 shadow-2xs"
                 }`}
               >
-                {/* Left: Week Prefix & Opponent */}
-                <div className="flex items-center gap-3.5 min-w-0">
-                  {/* Numbered Week Prefix (Inspired by Image 1 & 4) */}
+                {/* Left: Week Prefix & Opponent Details */}
+                <div className="flex items-center gap-4 min-w-0">
+                  {/* Numbered Week Prefix */}
                   <div className="w-12 flex-shrink-0 text-left">
                     <span className="font-editorial text-sm font-semibold text-[var(--muted)] block">
                       {weekNumberStr}
@@ -115,34 +128,39 @@ export default function ScheduleView({
                     </span>
                   </div>
 
-                  <div className="w-px h-7 bg-[var(--border)] flex-shrink-0" />
+                  <div className="w-px h-8 bg-[var(--border)] flex-shrink-0" />
 
                   {/* Opponent Logo & Details */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--input)] p-1.5 flex items-center justify-center flex-shrink-0 border border-[var(--border)]">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--input)] p-1.5 flex items-center justify-center flex-shrink-0 border border-[var(--border)] shadow-xs">
                       <img
                         src={game.opponent.logo}
                         alt={game.opponent.displayName}
-                        className="w-6 h-6 object-contain"
+                        className="w-7 h-7 object-contain"
                         loading="lazy"
                       />
                     </div>
 
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-[var(--muted)]">
                           {game.isHome ? "vs" : "@"}
                         </span>
-                        <span className="font-medium text-xs sm:text-sm text-[var(--foreground)] truncate">
+                        <span className="font-semibold text-sm text-[var(--foreground)] truncate">
                           {game.opponent.displayName}
                         </span>
+                        {game.opponent.record && (
+                          <span className="text-[11px] text-[var(--muted)] font-mono">
+                            ({game.opponent.record})
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-[var(--muted)] flex items-center gap-2 mt-0.5 truncate">
                         <span>{game.venue?.fullName || "Stadium"}</span>
                         {game.broadcast && (
                           <>
                             <span>•</span>
-                            <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-0.5">
+                            <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                               <Tv className="w-2.5 h-2.5" />
                               {game.broadcast}
                             </span>
@@ -153,8 +171,33 @@ export default function ScheduleView({
                   </div>
                 </div>
 
-                {/* Right: Scores or Schedule Status */}
-                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-[var(--border)]">
+                {/* Right: Win Probability & Status / Scores */}
+                <div className="flex items-center justify-between md:justify-end gap-5 pt-3 md:pt-0 border-t md:border-t-0 border-[var(--border)]">
+                  {/* Win Probability Bar for every game */}
+                  {!isCompleted && !game.isLive && (
+                    <div className="flex items-center gap-3 pr-2">
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold text-[var(--muted)] tracking-wider">
+                          Win Prob
+                        </div>
+                        <div className="font-editorial text-sm font-bold text-[var(--foreground)]">
+                          {prob}%
+                        </div>
+                      </div>
+                      {/* Mini visual gauge */}
+                      <div className="w-16 h-2 rounded-full bg-[var(--border)] overflow-hidden shadow-inner flex">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${prob}%`,
+                            backgroundColor: teamColor,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Score or Status */}
                   {game.isLive ? (
                     <div className="flex items-center gap-2">
                       <span className="relative flex h-2 w-2">
@@ -176,19 +219,19 @@ export default function ScheduleView({
                       </div>
 
                       <span
-                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                        className={`px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                           isWin
-                            ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
+                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25"
                             : isTie
                             ? "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300"
-                            : "bg-rose-500/12 text-rose-700 dark:text-rose-400 border border-rose-500/25"
+                            : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/25"
                         }`}
                       >
                         {isWin ? "Win" : isTie ? "Tie" : "Loss"}
                       </span>
                     </div>
                   ) : (
-                    <div className="text-left sm:text-right">
+                    <div className="text-left md:text-right min-w-[120px]">
                       <div className="text-xs font-semibold text-[var(--foreground)]">
                         {game.statusDetail}
                       </div>
