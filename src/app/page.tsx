@@ -2,7 +2,6 @@ import Link from "next/link";
 import TeamSelector from "@/components/TeamSelector";
 import { fetchLeagueStandings, fetchAllRemainingSchedules } from "@/lib/api";
 import {
-  SunburstIcon,
   EditorialCalendar,
   DivisionRankIcon,
   EditorialPulse,
@@ -34,23 +33,6 @@ export default async function HomePage() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-tr from-amber-500/8 via-blue-500/8 to-emerald-500/8 blur-3xl pointer-events-none rounded-full" />
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Brand Logo & Subtle Tagline Badge */}
-          <div className="flex flex-col items-center justify-center mb-6">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-3.5 bg-[var(--card)]/90 border border-[var(--border)] shadow-lg flex items-center justify-center mb-5 backdrop-blur-sm relative group hover:scale-103 transition-transform">
-              <div className="absolute inset-0 rounded-3xl bg-amber-500/10 blur-xl group-hover:bg-amber-500/20 transition-all pointer-events-none" />
-              <img
-                src="/logo.png"
-                alt="NFL Pulse"
-                className="w-full h-full object-contain relative z-10 drop-shadow-md"
-              />
-            </div>
-
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--input)] border border-[var(--border)] text-xs font-semibold text-[var(--muted)] shadow-2xs">
-              <SunburstIcon className="w-3.5 h-3.5 text-amber-500" />
-              <span>2026 NFL Season Intelligence & Remaining Slate Hub</span>
-            </div>
-          </div>
-
           <h1 className="font-editorial text-4xl sm:text-6xl md:text-7xl font-medium text-[var(--foreground)] tracking-tight max-w-4xl mx-auto leading-none">
             Your NFL Franchise <br />
             <span className="italic font-normal">Command Center</span>
