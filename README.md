@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NFL Pulse — Real-Time NFL Team Command Center
 
-## Getting Started
+A high-performance Next.js application that lets you select any of the 32 NFL franchises and delivers their complete 18-week schedule, upcoming matchup win probabilities (computer model + betting consensus), and real-time aggregated news.
 
-First, run the development server:
+![NFL Pulse Preview](public/preview.png)
+
+---
+
+## ⚡ Features
+
+1. **All 32 NFL Teams Directory**:
+   - Filter by Conference (**AFC / NFC**) or Division (**East, North, South, West**).
+   - Instant search by team name, city, or abbreviation (e.g. *Eagles*, *KC*, *49ers*, *Detroit*).
+   - Dynamic team branding (official 500x500 logos, primary and secondary color accents).
+
+2. **Upcoming Matchup & Win Probability Spotlight**:
+   - **ESPN FPI Matchup Predictor**: Computer projected win percentages (e.g. *Chiefs 88.3% – Cardinals 11.6%*).
+   - **Dual Color Visual Meter**: Split probability bar dynamically themed to each team's official hex codes.
+   - **Vegas Consensus & Implied Probabilities**: Point spread, over/under total, moneyline odds, and normalized vig-free implied win percentages.
+   - Stadium venue, kickoff date & time, and TV broadcast networks (CBS, FOX, NBC, ESPN, Prime Video).
+
+3. **Complete 18-Week Schedule & Results**:
+   - Filter tabs: **All Games (18)**, **Upcoming**, and **Results**.
+   - Completed games show final scores with color-coded **W / L / T** badges.
+   - Opponent helmets, home/away status, and stadium details.
+
+4. **Multi-Source Real-Time News Stream**:
+   - Aggregated news from **ESPN Official Editorial** and **Google News RSS** (covering local beat writers, The Athletic, NBC Sports, and wire reporting).
+   - Source badges, relative publication timestamps (*"2h ago"*, *"Yesterday"*), headline snippets, and outbound links.
+   - In-stream search filter to quickly find news about injuries, trades, or press conferences.
+
+---
+
+## 🛠️ Tech Stack & Architecture
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, Server Components, TypeScript)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **XML / RSS Parser**: `fast-xml-parser`
+- **Data Sources**:
+  - ESPN NFL Public REST endpoints (`teams`, `schedule`, `summary` with FPI predictor & odds)
+  - Google News RSS feed for live beat-writer aggregation
+
+---
+
+## 🚀 Getting Started
+
+### 1. Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd nfl-pulse
+pnpm install # or npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Development Mode
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+### 3. Production Build & Run
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm build
+pnpm start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📁 Project Structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+nfl-pulse/
+├── src/
+│   ├── app/
+│   │   ├── globals.css          # Dark sports theme & styles
+│   │   ├── layout.tsx           # Global shell & navbar
+│   │   ├── page.tsx             # Home page with 32-team directory & search
+│   │   └── team/
+│   │       └── [slug]/
+│   │           └── page.tsx     # Dynamic team dashboard (SSG/ISR)
+│   ├── components/
+│   │   ├── MatchupPredictor.tsx # Win probability meter & Vegas odds
+│   │   ├── Navbar.tsx           # Global navbar & quick team switcher
+│   │   ├── NewsFeed.tsx         # Real-time aggregated news stream
+│   │   ├── ScheduleView.tsx     # 18-week schedule & score cards
+│   │   └── TeamSelector.tsx     # Filterable team cards grid
+│   ├── data/
+│   │   └── teams.ts             # 32 NFL teams metadata, colors & logos
+│   ├── lib/
+│   │   └── api.ts               # ESPN API & Google News fetchers
+│   └── types/
+│       └── index.ts             # TypeScript interfaces
+```
